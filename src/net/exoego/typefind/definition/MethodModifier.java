@@ -5,14 +5,6 @@ import java.lang.reflect.Modifier;
 import java.util.stream.Stream;
 
 public interface MethodModifier {
-    static enum AccessLevel implements MethodModifier {
-        PRIVATE, PROTECTED, PUBLIC
-    }
-
-    static enum Other implements MethodModifier {
-        ABSTRACT, FINAL, NATIVE, STATIC, SYNCHRONIZED
-    }
-
     public static Stream<MethodModifier> extract(Method method) {
         final int modifier = method.getModifiers();
         final Stream.Builder<MethodModifier> builder = Stream.builder();
@@ -41,5 +33,13 @@ public interface MethodModifier {
             builder.accept(Other.SYNCHRONIZED);
         }
         return builder.build();
+    }
+
+    public static enum AccessLevel implements MethodModifier {
+        PRIVATE, PROTECTED, PUBLIC
+    }
+
+    public static enum Other implements MethodModifier {
+        ABSTRACT, FINAL, NATIVE, STATIC, SYNCHRONIZED
     }
 }
