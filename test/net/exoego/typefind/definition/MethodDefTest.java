@@ -2,6 +2,8 @@ package net.exoego.typefind.definition;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.junit.Test;
@@ -62,15 +64,16 @@ public class MethodDefTest {
         @Test
         public void instanceAndNoReturnType() throws NoSuchMethodException {
             final Method method = List.class.getMethod("clear");
-            assertThat(MethodDef.newInstance(method).simple(), is("List -> ()"));
-            assertThat(MethodDef.newInstance(method).full(), is("java.util.List#clear: java.util.List -> ()"));
+            assertThat(MethodDef.newInstance(method).simple(), is("List<E> -> ()"));
+            assertThat(MethodDef.newInstance(method).full(), is("java.util.List<E>#clear: java.util.List<E> -> ()"));
         }
 
         @Test
         public void instanceAndReturnType() throws NoSuchMethodException {
             final Method method = List.class.getMethod("isEmpty");
-            assertThat(MethodDef.newInstance(method).simple(), is("List -> boolean"));
-            assertThat(MethodDef.newInstance(method).full(), is("java.util.List#isEmpty: java.util.List -> boolean"));
+            assertThat(MethodDef.newInstance(method).simple(), is("List<E> -> boolean"));
+            assertThat(MethodDef.newInstance(method).full(),
+                       is("java.util.List<E>#isEmpty: java.util.List<E> -> boolean"));
         }
 
         @Test
@@ -85,6 +88,43 @@ public class MethodDefTest {
             final Method method = Arrays.class.getMethod("asList", Object[].class);
             assertThat(MethodDef.newInstance(method).simple(), is("T[] -> List<T>"));
             assertThat(MethodDef.newInstance(method).full(), is("java.util.Arrays.asList: T[] -> java.util.List<T>"));
+        }
+    }
+
+    public static class TwoArguments {
+        @Test
+        public void instanceAndNoReturnType() throws NoSuchMethodException {
+            final Method method = List.class.getMethod("sort", Comparator.class);
+            final MethodDef methodDef = MethodDef.newInstance(method);
+            assertThat(methodDef.full(),
+                       is("java.util.List<E>#sort: (java.util.List<E>, java.util.Comparator<? super E>) -> ()"));
+            assertThat(methodDef.simple(), is("(List<E>, ((E, E) -> int)) -> ()"));
+        }
+
+        @Test
+        public void instanceAndReturnType() throws NoSuchMethodException {
+            final Method method = List.class.getMethod("add", Object.class);
+            assertThat(MethodDef.newInstance(method).simple(), is("(List<E>, E) -> boolean"));
+            assertThat(MethodDef.newInstance(method).full(),
+                       is("java.util.List<E>#add: (java.util.List<E>, E) -> boolean"));
+        }
+
+        @Test
+        public void staticAndNoReturnType() throws NoSuchMethodException {
+            final Method method = Collections.class.getMethod("copy", List.class, List.class);
+            final MethodDef methodDef = MethodDef.newInstance(method);
+            assertThat(methodDef.simple(), is("(List<? super T>, List<? extends T>) -> ()"));
+            assertThat(methodDef.full(),
+                       is("java.util.Collections.copy: (java.util.List<? super T>, java.util.List<? extends T>) -> ()"));
+        }
+
+        @Test
+        public void staticAndReturnType() throws NoSuchMethodException {
+            final Method method = Collections.class.getMethod("binarySearch", List.class, Object.class);
+            final MethodDef methodDef = MethodDef.newInstance(method);
+            assertThat(methodDef.simple(), is("(List<? extends java.lang.Comparable<? super T>>, T) -> int"));
+            assertThat(methodDef.full(),
+                       is("java.util.Collections.binarySearch: (java.util.List<? extends java.lang.Comparable<? super T>>, T) -> int"));
         }
     }
 }

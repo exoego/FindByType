@@ -1,6 +1,7 @@
 package net.exoego.typefind.definition;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -24,7 +25,8 @@ public class MethodDef {
     private MethodDef(Method method) {
         this.name = method.getName();
         this.returnType = TypeDef.newInstance(method.getGenericReturnType());
-        this.declaringClass = TypeDef.newInstance(method.getDeclaringClass());
+        this.declaringClass = TypeDef.forceGeneric(method.getDeclaringClass());
+
         this.annotations = Stream.of(method.getAnnotations()).map(AnnotationDef::new).collect(toImmutableSet());
         this.exceptionTypes = Stream.of(method.getExceptionTypes()).map(TypeDef::newInstance).collect(toImmutableSet());
         this.arguments = Stream.of(method.getGenericParameterTypes())
@@ -36,6 +38,23 @@ public class MethodDef {
 
     public static MethodDef newInstance(Method method) {
         return new MethodDef(method);
+    }
+
+    private static String argumentsInSimpleNotation(List<TypeDef> arguments, Function<TypeDef, String> mapper) {
+        switch (arguments.size()) {
+            case 0:
+                return "()";
+            case 1:
+                // arg
+                return mapper.apply(arguments.get(0));
+            default:
+                // (arg1, arg2)
+                final StringJoiner joiner = new StringJoiner(", ", "(", ")");
+                for (TypeDef arg : arguments) {
+                    joiner.add(mapper.apply(arg));
+                }
+                return joiner.toString();
+        }
     }
 
     public Set<AnnotationDef> getDeclaredAnnotations() {
@@ -75,22 +94,15 @@ public class MethodDef {
     }
 
     private String full(final Function<TypeDef, String> name, final Supplier<String> begin) {
-        final StringJoiner stringJoiner = new StringJoiner(" -> ", begin.get(), "");
-
-        if (getModifiers().contains(MethodModifier.Other.STATIC)) {
-            if (arguments.isEmpty()) {
-                stringJoiner.add("()");
-            }
-        } else {
-            stringJoiner.add(name.apply(declaringClass));
+        final List<TypeDef> args = new ArrayList<>();
+        if (!getModifiers().contains(MethodModifier.Other.STATIC)) {
+            args.add(declaringClass);
         }
-
         for (TypeDef arg : arguments) {
-            stringJoiner.add(name.apply(arg));
+            args.add(arg);
         }
-
-        stringJoiner.add(name.apply(returnType));
-        return stringJoiner.toString();
+        final String argumentsString = argumentsInSimpleNotation(args, name);
+        return String.format("%s%s -> %s", begin.get(), argumentsString, name.apply(returnType));
     }
 
     public String full() {
