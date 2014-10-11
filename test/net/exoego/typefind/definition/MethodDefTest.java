@@ -4,7 +4,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
-import net.exoego.typefind.definition.MethodDef;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -18,24 +17,24 @@ public class MethodDefTest {
         @Test
         public void LambdaNotation() throws NoSuchMethodException {
             final Method method = String.class.getMethod("valueOf", int.class);
-            assertThat(MethodDef.newInstance(method).toLambdaNotation(), is("int -> String"));
+            assertThat(MethodDef.newInstance(method).simple(), is("int -> String"));
         }
 
         @Test
-        public void name() throws NoSuchMethodException {
+        public void method_name() throws NoSuchMethodException {
             final Method method = String.class.getMethod("valueOf", int.class);
-            assertThat(MethodDef.newInstance(method).getName(), is("valueOf"));
+            assertThat(MethodDef.newInstance(method).getMethodName(), is("valueOf"));
         }
 
         @Test
-        public void fullStatic() throws NoSuchMethodException {
+        public void full_name_of_static_method() throws NoSuchMethodException {
             final Method method = String.class.getMethod("valueOf", int.class);
             final String expected = "java.lang.String.valueOf: int -> java.lang.String";
             assertThat(MethodDef.newInstance(method).full(), is(expected));
         }
 
         @Test
-        public void fullInstance() throws NoSuchMethodException {
+        public void full_name_of_instance_method() throws NoSuchMethodException {
             final Method method = String.class.getMethod("length");
             final String expected = "java.lang.String#length: java.lang.String -> int";
             assertThat(MethodDef.newInstance(method).full(), is(expected));
@@ -48,13 +47,14 @@ public class MethodDefTest {
         @Test
         public void staticAndNoReturnType() throws NoSuchMethodException {
             final Method method = NoArgument.class.getMethod("doNothing");
-            assertThat(MethodDef.newInstance(method).toLambdaNotation(), is("() -> ()"));
+            assertThat(MethodDef.newInstance(method).simple(), is("() -> ()"));
         }
 
         @Test
         public void staticAndReturnType() throws NoSuchMethodException {
             final Method method = Math.class.getMethod("random");
-            assertThat(MethodDef.newInstance(method).toLambdaNotation(), is("() -> double"));
+            assertThat(MethodDef.newInstance(method).simple(), is("() -> double"));
+            assertThat(MethodDef.newInstance(method).full(), is("java.lang.Math.random: () -> double"));
         }
     }
 
@@ -62,25 +62,29 @@ public class MethodDefTest {
         @Test
         public void instanceAndNoReturnType() throws NoSuchMethodException {
             final Method method = List.class.getMethod("clear");
-            assertThat(MethodDef.newInstance(method).toLambdaNotation(), is("List -> ()"));
+            assertThat(MethodDef.newInstance(method).simple(), is("List -> ()"));
+            assertThat(MethodDef.newInstance(method).full(), is("java.util.List#clear: java.util.List -> ()"));
         }
 
         @Test
         public void instanceAndReturnType() throws NoSuchMethodException {
             final Method method = List.class.getMethod("isEmpty");
-            assertThat(MethodDef.newInstance(method).toLambdaNotation(), is("List -> boolean"));
+            assertThat(MethodDef.newInstance(method).simple(), is("List -> boolean"));
+            assertThat(MethodDef.newInstance(method).full(), is("java.util.List#isEmpty: java.util.List -> boolean"));
         }
 
         @Test
         public void staticAndNoReturnType() throws NoSuchMethodException {
             final Method method = Arrays.class.getMethod("sort", Object[].class);
-            assertThat(MethodDef.newInstance(method).toLambdaNotation(), is("Object[] -> ()"));
+            assertThat(MethodDef.newInstance(method).simple(), is("Object[] -> ()"));
+            assertThat(MethodDef.newInstance(method).full(), is("java.util.Arrays.sort: java.lang.Object[] -> ()"));
         }
 
         @Test
         public void staticAndReturnType() throws NoSuchMethodException {
             final Method method = Arrays.class.getMethod("asList", Object[].class);
-            assertThat(MethodDef.newInstance(method).toLambdaNotation(), is("T[] -> List<T>"));
+            assertThat(MethodDef.newInstance(method).simple(), is("T[] -> List<T>"));
+            assertThat(MethodDef.newInstance(method).full(), is("java.util.Arrays.asList: T[] -> java.util.List<T>"));
         }
     }
 }

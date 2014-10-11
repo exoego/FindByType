@@ -66,11 +66,11 @@ public class MethodDef {
         return modifiers;
     }
 
-    public String getName() {
+    public String getMethodName() {
         return name;
     }
 
-    public String toLambdaNotation() {
+    public String simple() {
         return full(TypeDef::getSimpleName, () -> "");
     }
 
@@ -96,7 +96,7 @@ public class MethodDef {
     public String full() {
         return full(TypeDef::getFullName, () -> declaringClass.getFullName() +
                                                 (getModifiers().contains(MethodModifier.Other.STATIC) ? "." : "#") +
-                                                getName() + ": ");
+                                                getMethodName() + ": ");
     }
 
     @Override
