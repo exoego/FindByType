@@ -1,12 +1,20 @@
 package net.exoego.typefind.definition;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BinaryOperator;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.Ignore;
@@ -100,20 +108,24 @@ public class TypeDefTest {
     }
 
     @RunWith(Theories.class)
-    public static class ParameterizedClass {
+    public static class NonFunctionlInterface_ParameterizedClass {
         @Test
-        @Ignore
-        public void a() {
-            fail("no test");
+        public void has_upper_bound() throws NoSuchMethodException {
+            final Method method = Collections.class.getMethod("unmodifiableList", List.class);
+            final TypeDef typeDef = TypeDef.newInstance(method.getGenericParameterTypes()[0]);
+            assertThat(typeDef.getFullName(), is("java.util.List<? extends T>"));
+            assertThat(typeDef.getSimpleName(), is("List<? extends T>"));
         }
     }
 
     @RunWith(Theories.class)
     public static class TypeVariable {
         @Test
-        @Ignore
-        public void a() {
-            fail("no test");
+        public void typeVariable() throws NoSuchMethodException {
+            final Method add = List.class.getMethod("add", Object.class);
+            final TypeDef typeDef = TypeDef.newInstance(add.getGenericParameterTypes()[0]);
+            assertThat(typeDef.getFullName(),is("E"));
+            assertThat(typeDef.getSimpleName(), is("E"));
         }
     }
 
@@ -127,7 +139,7 @@ public class TypeDefTest {
         }
 
         @Test
-        public void parameteriezed() throws NoSuchMethodException {
+        public void parameterized() throws NoSuchMethodException {
             final Method streamMap = Stream.class.getMethod("map", Function.class);
             final TypeDef typeDef = TypeDef.newInstance(streamMap.getGenericParameterTypes()[0]);
             assertThat(typeDef.getFullName(), is("java.util.function.Function<? super T, ? extends R>"));
@@ -143,21 +155,43 @@ public class TypeDefTest {
         }
 
         @Test
-        public void multipleArguments() throws NoSuchMethodException {
+        public void noArguments_primitive_return() throws NoSuchMethodException {
+            final TypeDef typeDef = TypeDef.newInstance(BooleanSupplier.class);
+            assertThat(typeDef.getFullName(), is("java.util.function.BooleanSupplier"));
+            assertThat(typeDef.getSimpleName(), is("(() -> boolean)"));
+        }
+
+        @Test
+        public void multiple_reference_arguments() throws NoSuchMethodException {
             final Method streamReduce = Stream.class.getMethod("reduce", BinaryOperator.class);
-            final Type[] types = streamReduce.getGenericParameterTypes();
-            final TypeDef typeDef = TypeDef.newInstance(types[0]);
+            final TypeDef typeDef = TypeDef.newInstance(streamReduce.getGenericParameterTypes()[0]);
             assertThat(typeDef.getFullName(), is("java.util.function.BinaryOperator<T>"));
             assertThat(typeDef.getSimpleName(), is("((T, T) -> T)"));
+        }
+
+        @Test
+        public void multiple_primitive_arguments() throws NoSuchMethodException {
+            final Method reduce = IntStream.class.getMethod("reduce", IntBinaryOperator.class);
+            final TypeDef typeDef = TypeDef.newInstance(reduce.getGenericParameterTypes()[0]);
+            assertThat(typeDef.getFullName(), is("java.util.function.IntBinaryOperator"));
+            assertThat(typeDef.getSimpleName(), is("((int, int) -> int)"));
         }
     }
 
     @RunWith(Theories.class)
     public static class NonParameterizedClass {
         @Test
-        @Ignore
-        public void a() {
-            fail("no test");
+        public void non_parameterized_interface() {
+            final TypeDef typeDef = TypeDef.newInstance(Cloneable.class);
+            assertThat(typeDef.getFullName(), is("java.lang.Cloneable"));
+            assertThat(typeDef.getSimpleName(), is("Cloneable"));
+        }
+
+        @Test
+        public void non_parameterized_class() {
+            final TypeDef typeDef = TypeDef.newInstance(Calendar.class);
+            assertThat(typeDef.getFullName(), is("java.util.Calendar"));
+            assertThat(typeDef.getSimpleName(), is("Calendar"));
         }
     }
 }

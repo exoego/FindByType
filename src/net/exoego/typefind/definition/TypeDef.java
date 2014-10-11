@@ -92,48 +92,48 @@ public class TypeDef {
         final Method inheritedSAM = Stream.of(klass.getMethods())
                                           .filter(m -> !Modifier.isStatic(m.getModifiers()))
                                           .filter(isAbstract)
-                                          .findFirst().get();
-        final Class first = Stream.of(klass.getInterfaces())
-                                  .filter(k -> inheritedSAM.getDeclaringClass().equals(k))
-                                  .findFirst().get();
-        final TypeVariable[] typeParameters = first.getTypeParameters();
+                                          .findFirst()
+                                          .get();
+        final Class superClass = Stream.of(klass.getInterfaces())
+                                       .filter(k -> inheritedSAM.getDeclaringClass().equals(k))
+                                       .findFirst()
+                                       .get();
+        final TypeVariable[] typeParameters = superClass.getTypeParameters();
 
-        final Type genericDeclaringClass = Stream.of(klass.getGenericInterfaces())
-                               .filter(k -> k.getTypeName().startsWith(first.getTypeName()))
-                               .findFirst().get();
-
-        final Type[] actualTypeArguments = ((ParameterizedType) genericDeclaringClass).getActualTypeArguments();
+        final ParameterizedType parameterizedSuper = Stream.of(klass.getGenericInterfaces())
+                                                           .filter(k -> k.getTypeName()
+                                                                         .startsWith(superClass.getTypeName()))
+                                                           .findFirst()
+                                                           .map(ParameterizedType.class::cast)
+                                                           .get();
+        final Type[] actualTypeArguments = parameterizedSuper.getActualTypeArguments();
 
         if (typeParameters.length != actualTypeArguments.length) {
-          final String messagge = String.format("number of type parameters unmatched: expected %s but %s",
-                    typeParameters.length, actualTypeArguments.length);
-            throw new IllegalStateException(messagge);
+            final String message = String.format("number of type parameters unmatched: expected %s but %s",
+                                                 typeParameters.length,
+                                                 actualTypeArguments.length);
+            throw new IllegalStateException(message);
         }
 
-        final Map<TypeVariable, Type> mapToActual = new HashMap<TypeVariable,Type>();
-        for (int i = 0; i<typeParameters.length;i++) {
-            final TypeVariable key = typeParameters[i];
-            final Type value = actualTypeArguments[i];
-            mapToActual.put(key, value);
+        final Map<TypeVariable, Type> toActual = new HashMap<TypeVariable, Type>();
+        for (int i = 0; i < typeParameters.length; i++) {
+            toActual.put(typeParameters[i], actualTypeArguments[i]);
         }
-        String aaaa = toLambda(inheritedSAM);
-        for (Map.Entry<TypeVariable,Type> entry : mapToActual.entrySet()){
+
+        final String lambda = toActual.entrySet().stream().reduce(toLambda(inheritedSAM), (l, entry) -> {
             final String tentative = entry.getKey().getTypeName();
-            Pattern.compile("¥¥bBB¥¥b");
-            final Pattern compile = Pattern.compile("\\b" + tentative + "\\b");
             final String actual = entry.getValue().getTypeName();
-            aaaa = compile.matcher(aaaa).replaceAll(actual);
-        }
-        return Optional.of(aaaa);
+            return Pattern.compile("\\b" + tentative + "\\b").matcher(l).replaceAll(actual);
+        }, (lambda1, lambda2) -> /* combiner never used !! */null);
+        return Optional.of(lambda);
     }
 
     private static String toLambda(final Method method) {
         final Type[] arguments = method.getGenericParameterTypes();
         final Type returnType = method.getGenericReturnType();
-        final String lambda = String.format("(%s -> %s)",
-                                            argumentsInSimpleNotation(arguments),
-                                            TypeDef.newInstance(returnType).getSimpleName());
-        return lambda;
+        return String.format("(%s -> %s)",
+                             argumentsInSimpleNotation(arguments),
+                             TypeDef.newInstance(returnType).getSimpleName());
     }
 
     private static String argumentsInSimpleNotation(Type[] arguments) {
