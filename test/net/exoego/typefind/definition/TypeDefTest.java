@@ -1,23 +1,20 @@
 package net.exoego.typefind.definition;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Supplier;
-import java.util.function.ToIntFunction;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.experimental.theories.DataPoints;
@@ -27,7 +24,6 @@ import org.junit.runner.RunWith;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
 
 @RunWith(Enclosed.class)
 public class TypeDefTest {
@@ -176,6 +172,17 @@ public class TypeDefTest {
             assertThat(typeDef.getFullName(), is("java.util.function.IntBinaryOperator"));
             assertThat(typeDef.getSimpleName(), is("((int, int) -> int)"));
         }
+
+        @Test
+        public void ignore_method_defined_in_Object() throws NoSuchMethodException {
+            // Comparator has 2 abstract method but can be considered to have single one.
+            // Because abstract methods which is defined in Object is can be ignored.
+            final Method reduce = List.class.getMethod("sort", Comparator.class);
+            final TypeDef typeDef = TypeDef.newInstance(reduce.getGenericParameterTypes()[0]);
+            assertThat(typeDef.getFullName(), is("java.util.Comparator<? super E>"));
+            assertThat(typeDef.getSimpleName(), is("((E, E) -> int)"));
+        }
+
     }
 
     @RunWith(Theories.class)
