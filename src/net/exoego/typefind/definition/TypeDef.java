@@ -6,15 +6,14 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-/**
- * Created with IntelliJ IDEA.
- */
 public class TypeDef {
     private final PackageDef packageDef;
     private final String name;
@@ -67,7 +66,7 @@ public class TypeDef {
             return "()";
         }
         if (kind == TypeKind.FUNCTIONAL_INTERFACE) {
-            return lambda.get();
+            return lambda.orElse(name);
         }
         return name;
     }
@@ -89,6 +88,7 @@ public class TypeDef {
         if (declaredSAM.isPresent()) {
             return declaredSAM.map(TypeDef::toLambda);
         }
+
         final Method inheritedSAM = Stream.of(klass.getMethods())
                                           .filter(m -> !Modifier.isStatic(m.getModifiers()))
                                           .filter(isAbstract)
@@ -97,15 +97,34 @@ public class TypeDef {
                                   .filter(k -> inheritedSAM.getDeclaringClass().equals(k))
                                   .findFirst().get();
         final TypeVariable[] typeParameters = first.getTypeParameters();
-        System.out.println(Arrays.toString(typeParameters));
 
-        final Type wwww = Stream.of(klass.getGenericInterfaces())
-                                .filter(k -> k.getTypeName().startsWith(first.getTypeName())).findFirst().get();
+        final Type genericDeclaringClass = Stream.of(klass.getGenericInterfaces())
+                               .filter(k -> k.getTypeName().startsWith(first.getTypeName()))
+                               .findFirst().get();
 
-        final Type[] actualTypeArguments = ((ParameterizedType) wwww).getActualTypeArguments();
-        System.out.println(Arrays.toString(actualTypeArguments));
+        final Type[] actualTypeArguments = ((ParameterizedType) genericDeclaringClass).getActualTypeArguments();
 
-        return Optional.empty();
+        if (typeParameters.length != actualTypeArguments.length) {
+          final String messagge = String.format("number of type parameters unmatched: expected %s but %s",
+                    typeParameters.length, actualTypeArguments.length);
+            throw new IllegalStateException(messagge);
+        }
+
+        final Map<TypeVariable, Type> mapToActual = new HashMap<TypeVariable,Type>();
+        for (int i = 0; i<typeParameters.length;i++) {
+            final TypeVariable key = typeParameters[i];
+            final Type value = actualTypeArguments[i];
+            mapToActual.put(key, value);
+        }
+        String aaaa = toLambda(inheritedSAM);
+        for (Map.Entry<TypeVariable,Type> entry : mapToActual.entrySet()){
+            final String tentative = entry.getKey().getTypeName();
+            Pattern.compile("¥¥bBB¥¥b");
+            final Pattern compile = Pattern.compile("\\b" + tentative + "\\b");
+            final String actual = entry.getValue().getTypeName();
+            aaaa = compile.matcher(aaaa).replaceAll(actual);
+        }
+        return Optional.of(aaaa);
     }
 
     private static String toLambda(final Method method) {

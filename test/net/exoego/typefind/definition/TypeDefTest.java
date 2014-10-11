@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.junit.Ignore;
