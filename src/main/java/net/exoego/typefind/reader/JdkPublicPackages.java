@@ -1,5 +1,6 @@
 package net.exoego.typefind.reader;
 
+import java.lang.reflect.Modifier;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -31,6 +32,20 @@ public final class JdkPublicPackages {
      */
     public static Pattern jdkAll() {
         return WHITE_PACKAGES;
+    }
+
+    /**
+     * Test if the given {@code CharSequence} is public and belongs to one of public documented JDK packages.
+     *
+     * @return {@code true} if the given {@code CharSequence} is public and belongs to one of public documented JDK
+     * packages.
+     */
+    public static boolean isPublicDocumentedJdkClass(Class<?> k) {
+        if (Modifier.isPublic(k.getModifiers())) {
+            final String packageName = k.getPackage().getName();
+            return packageName != null && WHITE_PACKAGES.matcher(packageName).matches();
+        }
+        return false;
     }
 
     static {
