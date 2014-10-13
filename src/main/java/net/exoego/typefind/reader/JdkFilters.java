@@ -16,10 +16,10 @@ import java.util.stream.Stream;
 /**
  * Provides utility methods that returns {@code Pattern} instance to filter JDK public packages.
  */
-public final class JdkPublicPackages {
+public final class JdkFilters {
     private static final Pattern WHITE_PACKAGES;
 
-    private JdkPublicPackages() {
+    private JdkFilters() {
 
     }
 

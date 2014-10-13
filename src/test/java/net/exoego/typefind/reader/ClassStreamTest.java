@@ -43,7 +43,7 @@ public class ClassStreamTest {
         final Stream<Class<?>> jdkClasses = Files.walk(Paths.get(JRE_LIB))
                                                  .filter(isJarFile)
                                                  .flatMap(ClassStream::from)
-                                                 .filter(JdkPublicPackages::isPublicDocumentedJdkClass);
+                                                 .filter(JdkFilters::isPublicDocumentedJdkClass);
         assertThat(jdkClasses.count(), is(greaterThan(4000L)));
     }
 

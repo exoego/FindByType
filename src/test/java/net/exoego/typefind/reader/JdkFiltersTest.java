@@ -10,10 +10,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class JdkPublicPackagesTest {
+public class JdkFiltersTest {
     private static class MyMatcher extends BaseMatcher<CharSequence> {
         private static final MyMatcher INSTANCE = new MyMatcher();
-        private static final Pattern JDK_ALL = JdkPublicPackages.jdkAll();
+        private static final Pattern JDK_ALL = JdkFilters.jdkAll();
 
         @Override
         public boolean matches(final Object o) {
