@@ -44,11 +44,9 @@ public class MethodDefTest {
     }
 
     public static class NoArgument {
-        public static void doNothing() {}
-
         @Test
         public void staticAndNoReturnType() throws NoSuchMethodException {
-            final Method method = NoArgument.class.getMethod("doNothing");
+            final Method method = System.class.getMethod("gc");
             assertThat(MethodDef.newInstance(method).simple(), is("() -> ()"));
         }
 
