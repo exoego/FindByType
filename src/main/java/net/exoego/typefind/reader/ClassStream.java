@@ -18,7 +18,6 @@ import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
-import java.util.function.UnaryOperator;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collector;
@@ -29,6 +28,9 @@ import java.util.stream.Stream;
 
 import net.exoego.util.MoreCollectors;
 
+/**
+ * Stream of {@code Class} that is loaded from {@code JarFile} and alike.
+ */
 public class ClassStream implements Stream<Class<?>> {
     private final Stream<Class<?>> source;
 
@@ -40,10 +42,22 @@ public class ClassStream implements Stream<Class<?>> {
         return new ClassStream(source);
     }
 
+    /**
+     * Shortcut to <code>ClassStream.from(path.toFile())</code>.
+     *
+     * @param path the path represents a file as sources of {@code Class}es.
+     * @return {@code ClassStream} instance to load {@code Class}es from the given {@code JarFile}.
+     */
     public static ClassStream from(final Path path) {
         return from(path.toFile());
     }
 
+    /**
+     * Shortcut to <code>ClassStream.from(new JarFile(file))</code>.
+     *
+     * @param file the file as sources of {@code Class}es.
+     * @return {@code ClassStream} instance to load {@code Class}es from the given {@code JarFile}.
+     */
     public static ClassStream from(final File file) {
         try {
             return from(new JarFile(file));
@@ -52,6 +66,13 @@ public class ClassStream implements Stream<Class<?>> {
         }
     }
 
+    /**
+     * Create an instance from {@code JarFile} instance.
+     * The returned instance closes the given {@code JarFile} on {@link java.util.stream.Stream#close()}.
+     *
+     * @param jar the jar file as sources of {@code Class}es.
+     * @return {@code ClassStream} instance to load {@code Class}es from the given {@code JarFile}.
+     */
     public static ClassStream from(final JarFile jar) {
         final Supplier<Stream<Class<?>>> lazyLoad = () -> jar.stream()
                                                              .map(ClassStream::jarEntryAsClass)
@@ -256,37 +277,6 @@ public class ClassStream implements Stream<Class<?>> {
     @Override
     public Optional<Class<?>> findAny() {
         return source.findAny();
-    }
-
-    public static <T> Builder<T> builder() {
-        return Stream.builder();
-    }
-
-    public static <T> Stream<T> empty() {
-        return Stream.empty();
-    }
-
-    public static <T> Stream<T> of(final T t) {
-        return Stream.of(t);
-    }
-
-    @SafeVarargs
-    public static <T> Stream<T> of(final T... values) {
-        return Stream.of(values);
-    }
-
-    public static <T> Stream<T> iterate(final T seed, final UnaryOperator<T> f) {
-        return Stream.iterate(seed, f);
-    }
-
-    public static <T> Stream<T> generate(final Supplier<T> s) {
-        return Stream.generate(s);
-    }
-
-    public static <T> Stream<T> concat(
-            final Stream<? extends T> a,
-            final Stream<? extends T> b) {
-        return Stream.concat(a, b);
     }
 
     @Override
