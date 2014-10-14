@@ -28,6 +28,12 @@ public class TypeDef {
             return true;
         }
     };
+
+    static {
+        final Predicate<Method> isDefault = Method::isDefault;
+        IS_ABSTRACT = isDefault.negate();
+    }
+
     private final PackageDef packageDef;
     private final String name;
     private final Optional<String> lambda;
@@ -49,18 +55,9 @@ public class TypeDef {
     }
 
     public static TypeDef newInstance(Type type) {
-        if (type instanceof ParameterizedType) {
-            ParameterizedType _type = (ParameterizedType) type;
-            return new TypeDef(_type);
-        } else if (type instanceof TypeVariable) {
-            TypeVariable _type = (TypeVariable) type;
-            return new TypeDef(_type);
-        } else if (type instanceof GenericArrayType) {
-            GenericArrayType _type = (GenericArrayType) type;
-            return new TypeDef(_type);
-        } else if (type instanceof Class) {
-            Class<?> _type = (Class<?>) type;
-            return new TypeDef(_type);
+        if (type instanceof ParameterizedType || type instanceof TypeVariable ||
+            type instanceof GenericArrayType || type instanceof Class) {
+            return new TypeDef(type);
         } else {
             throw new IllegalArgumentException("unknown subtype of Type: " + type.getClass());
         }
@@ -70,12 +67,16 @@ public class TypeDef {
         return new TypeDef(klass, klass.toGenericString());
     }
 
-    private static Optional<String> aaaa(Method sam, Map<TypeVariable, Type> relation) {
+    private static Optional<String> replaceTypeVariableWithActual(
+            Method sam,
+            TypeVariable[] variables,
+            Type[] actual) {
+        final Map<TypeVariable, Type> relation = typeParamRelation(variables, actual);
         final String lambda = relation.entrySet().stream().reduce(toLambda(sam), (l, entry) -> {
             final String tentative = entry.getKey().getTypeName();
             // TODO: Handle upper/lower bounds in better way...
-            final String actual = entry.getValue().getTypeName().replaceAll("\\? (super|extends) ", "");
-            return Pattern.compile("\\b" + tentative + "\\b").matcher(l).replaceAll(actual);
+            final String actualName = entry.getValue().getTypeName().replaceAll("\\? (super|extends) ", "");
+            return Pattern.compile("\\b" + tentative + "\\b").matcher(l).replaceAll(actualName);
         }, (lambda1, lambda2) -> /* combiner never used !! */null);
         return Optional.of(lambda);
     }
@@ -95,10 +96,10 @@ public class TypeDef {
     }
 
     private static String toLambda(final Method method) {
-        final Type[] arguments = method.getGenericParameterTypes();
+        final Type[] parameterTypes = method.getGenericParameterTypes();
         final Type returnType = method.getGenericReturnType();
         return String.format("(%s -> %s)",
-                             argumentsInSimpleNotation(arguments),
+                             argumentsInSimpleNotation(parameterTypes),
                              TypeDef.newInstance(returnType).getSimpleName());
     }
 
@@ -145,34 +146,28 @@ public class TypeDef {
         return name;
     }
 
-    static {
-        final Predicate<Method> isDefault = Method::isDefault;
-        IS_ABSTRACT = isDefault.negate();
-    }
-
-    public Optional<String> lambdaIfFunctionalInterface(Type type) {
+    private Optional<String> lambdaIfFunctionalInterface(Type type) {
         if (kind != TypeKind.FUNCTIONAL_INTERFACE) {
             return Optional.empty();
         }
-        final Type[] actualTypeArgsOfClass;
         if (type instanceof ParameterizedType) {
-            actualTypeArgsOfClass = ((ParameterizedType) type).getActualTypeArguments();
-            type = ((ParameterizedType) type).getRawType();
-        } else {
-            actualTypeArgsOfClass = new Type[0];
+            final ParameterizedType parameterized = (ParameterizedType) type;
+            return chooseDeclaredSamOrInheritedSam((Class) parameterized.getRawType(),
+                                                   parameterized.getActualTypeArguments());
         }
-        final Class klass = (Class) type;
-        final TypeVariable[] typeParamsOfClass = klass.getTypeParameters();
+        return chooseDeclaredSamOrInheritedSam((Class) type, new Type[0]);
+    }
 
+    private Optional<String> chooseDeclaredSamOrInheritedSam(final Class klass, final Type[] actualTypeArgsOfClass) {
         final Optional<Method> declaredSAM = Stream.of(klass.getDeclaredMethods())
                                                    .filter(m -> !Modifier.isStatic(m.getModifiers()))
                                                    .filter(IS_ABSTRACT)
                                                    .filter(UNDEFINED_IN_OBJECT)
                                                    .findFirst();
         if (declaredSAM.isPresent()) {
-            final Map<TypeVariable, Type> typeVariableTypeMap = typeParamRelation(typeParamsOfClass,
-                                                                                  actualTypeArgsOfClass);
-            return aaaa(declaredSAM.get(), typeVariableTypeMap);
+            return replaceTypeVariableWithActual(declaredSAM.get(),
+                                                 klass.getTypeParameters(),
+                                                 actualTypeArgsOfClass);
         }
         final Method inheritedSAM = Stream.of(klass.getMethods())
                                           .filter(m -> !Modifier.isStatic(m.getModifiers()))
@@ -183,17 +178,14 @@ public class TypeDef {
                                        .filter(k -> inheritedSAM.getDeclaringClass().equals(k))
                                        .findFirst()
                                        .get();
-        final TypeVariable[] typeParameters = superClass.getTypeParameters();
-
         final ParameterizedType parameterizedSuper = Stream.of(klass.getGenericInterfaces())
                                                            .filter(k -> k.getTypeName()
                                                                          .startsWith(superClass.getTypeName()))
                                                            .findFirst()
                                                            .map(ParameterizedType.class::cast)
                                                            .get();
-        final Type[] actualTypeArguments = parameterizedSuper.getActualTypeArguments();
-
-        final Map<TypeVariable, Type> toActual = typeParamRelation(typeParameters, actualTypeArguments);
-        return aaaa(inheritedSAM, toActual);
+        return replaceTypeVariableWithActual(inheritedSAM,
+                                             superClass.getTypeParameters(),
+                                             parameterizedSuper.getActualTypeArguments());
     }
 }
