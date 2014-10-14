@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 
 import com.google.gson.annotations.JsonAdapter;
 
-@JsonAdapter(TypeDefAdapter.class)
 public class TypeDef {
     private static final Pattern EXCEPT_MODIFIERS = Pattern.compile(
             "\\b(?:public|protected|private|class|interface|enum|abstract|native|static|strictfp|final|synchronized) \\b");

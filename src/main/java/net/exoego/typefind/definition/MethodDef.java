@@ -14,7 +14,6 @@ import com.google.gson.annotations.JsonAdapter;
 import static net.exoego.util.MoreCollectors.toImmutableList;
 import static net.exoego.util.MoreCollectors.toImmutableSet;
 
-@JsonAdapter(MethodDefAdapter.class)
 public class MethodDef {
     private final Set<AnnotationDef> annotations;
     private final Set<TypeDef> exceptions;
