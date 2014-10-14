@@ -3,6 +3,7 @@ package net.exoego.typefind.reader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Optional;
@@ -32,6 +33,26 @@ import net.exoego.util.MoreCollectors;
  * Stream of {@code Class} that is loaded from {@code JarFile} and alike.
  */
 public class ClassStream implements Stream<Class<?>> {
+    private static final Path JRE_LIB;
+
+    static {
+        final String value = System.getProperty("sun.boot.class.path");
+        if (value == null) {
+            throw new IllegalStateException("JRE lib directory not found");
+        }
+        final String jar = value.split(System.getProperty("path.separator"))[0];
+        final String fileSeparator = System.getProperty("file.separator");
+        // Fxxk windows
+        final String escapedFileSeparator = fileSeparator.equals("\\") ? "\\\\" : fileSeparator;
+        // remove last path such as "/rt.jar"
+        String lib = jar.replaceFirst(escapedFileSeparator + "[^" + escapedFileSeparator + "]+$", "");
+        if (lib == null || lib.isEmpty()) {
+            throw new IllegalStateException("failed to get JRE lib path");
+        }
+        JRE_LIB = Paths.get(lib);
+    }
+
+    private static final boolean CLASS_INITIALIZATION_NOT_REQUIRED = false;
     private final Stream<Class<?>> source;
 
     private ClassStream(final Stream<Class<?>> source) {
@@ -66,6 +87,10 @@ public class ClassStream implements Stream<Class<?>> {
         }
     }
 
+    public static Path getJreLibPath() {
+        return JRE_LIB;
+    }
+
     /**
      * Create an instance from {@code JarFile} instance.
      * The returned instance closes the given {@code JarFile} on {@link java.util.stream.Stream#close()}.
@@ -89,8 +114,6 @@ public class ClassStream implements Stream<Class<?>> {
                                                            .flatMap(Function.identity());
         return new ClassStream(generateOnceAndFlat);
     }
-
-    private static final boolean CLASS_INITIALIZATION_NOT_REQUIRED = false;
 
     private static Optional<Class<?>> jarEntryAsClass(final JarEntry entry) {
         if (entry.getName().endsWith(".class")) {
@@ -300,13 +323,13 @@ public class ClassStream implements Stream<Class<?>> {
     }
 
     @Override
-    public ClassStream unordered() {
-        return newInstance(source.unordered());
+    public ClassStream parallel() {
+        return newInstance(source.parallel());
     }
 
     @Override
-    public ClassStream parallel() {
-        return newInstance(source.parallel());
+    public ClassStream unordered() {
+        return newInstance(source.unordered());
     }
 
     @Override
