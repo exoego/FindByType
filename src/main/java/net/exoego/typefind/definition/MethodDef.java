@@ -9,31 +9,42 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import com.google.gson.annotations.JsonAdapter;
+
 import static net.exoego.util.MoreCollectors.toImmutableList;
 import static net.exoego.util.MoreCollectors.toImmutableSet;
 
+@JsonAdapter(MethodDefAdapter.class)
 public class MethodDef {
     private final Set<AnnotationDef> annotations;
-    private final Set<TypeDef> exceptionTypes;
+    private final Set<TypeDef> exceptions;
     private final List<TypeDef> arguments;
     private final Set<TypeDef> typeParameters;
     private final TypeDef returnType;
     private final TypeDef declaringClass;
     private final Set<MethodModifier> modifiers;
-    private final String name;
+    private final String methodName;
+    private final String simpleForm;
+    private final String fullForm;
 
     private MethodDef(Method method) {
-        this.name = method.getName();
+        this.methodName = method.getName();
         this.returnType = TypeDef.newInstance(method.getGenericReturnType());
         this.declaringClass = TypeDef.forceGeneric(method.getDeclaringClass());
 
         this.annotations = Stream.of(method.getAnnotations()).map(AnnotationDef::new).collect(toImmutableSet());
-        this.exceptionTypes = Stream.of(method.getExceptionTypes()).map(TypeDef::newInstance).collect(toImmutableSet());
+        this.exceptions = Stream.of(method.getExceptionTypes()).map(TypeDef::newInstance).collect(toImmutableSet());
         this.arguments = Stream.of(method.getGenericParameterTypes())
                                .map(TypeDef::newInstance)
                                .collect(toImmutableList());
         this.typeParameters = Stream.of(method.getTypeParameters()).map(TypeDef::newInstance).collect(toImmutableSet());
         this.modifiers = MethodModifier.extract(method).collect(toImmutableSet());
+        this.simpleForm = methodFormat(TypeDef::getSimpleName, () -> "");
+        this.fullForm = methodFormat(TypeDef::getFullName, () -> declaringClass.getFullName() +
+                                                                 (getModifiers().contains(MethodModifier.Other.STATIC)
+                                                                          ? "."
+                                                                          : "#") +
+                                                                 getMethodName() + ": ");
     }
 
     public static MethodDef newInstance(Method method) {
@@ -66,7 +77,7 @@ public class MethodDef {
     }
 
     public Set<TypeDef> getExceptionType() {
-        return exceptionTypes;
+        return exceptions;
     }
 
     public List<TypeDef> getArguments() {
@@ -86,14 +97,14 @@ public class MethodDef {
     }
 
     public String getMethodName() {
-        return name;
+        return methodName;
     }
 
     public String simple() {
-        return full(TypeDef::getSimpleName, () -> "");
+        return simpleForm;
     }
 
-    private String full(final Function<TypeDef, String> name, final Supplier<String> begin) {
+    private String methodFormat(final Function<TypeDef, String> name, final Supplier<String> begin) {
         final List<TypeDef> args = new ArrayList<>();
         if (!getModifiers().contains(MethodModifier.Other.STATIC)) {
             args.add(declaringClass);
@@ -106,9 +117,7 @@ public class MethodDef {
     }
 
     public String full() {
-        return full(TypeDef::getFullName, () -> declaringClass.getFullName() +
-                                                (getModifiers().contains(MethodModifier.Other.STATIC) ? "." : "#") +
-                                                getMethodName() + ": ");
+        return fullForm;
     }
 
     @Override
@@ -116,13 +125,13 @@ public class MethodDef {
         return "MethodDef{" +
                "\n    " + full() +
                "\n    annotations=" + annotations +
-               "\n    exceptionTypes=" + exceptionTypes +
+               "\n    exceptions=" + exceptions +
                "\n    arguments=" + arguments +
                "\n    typeParameters=" + typeParameters +
                "\n    returnType=" + returnType +
                "\n    declaringClass=" + declaringClass +
                "\n    modifiers=" + modifiers +
-               "\n    name='" + name + '\'' +
+               "\n    methodName='" + methodName + '\'' +
                '}';
     }
 }

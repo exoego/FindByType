@@ -10,10 +10,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import com.google.gson.annotations.JsonAdapter;
+
+@JsonAdapter(TypeDefAdapter.class)
 public class TypeDef {
     private static final Pattern EXCEPT_MODIFIERS = Pattern.compile(
             "\\b(?:public|protected|private|class|interface|enum|abstract|native|static|strictfp|final|synchronized) \\b");
@@ -36,22 +41,36 @@ public class TypeDef {
 
     private final PackageDef packageDef;
     private final String name;
-    private final Optional<String> lambda;
+    private final String fullName;
     private final TypeKind kind;
 
     private TypeDef(Type type) {
-        this.packageDef = PackageDef.of(type);
-        this.name = type.getTypeName().replace(packageDef.getName() + ".", "");
-        this.kind = TypeKind.what(type);
-        this.lambda = lambdaIfFunctionalInterface(type);
+        this(type, (packageDef) -> type.getTypeName().replace(packageDef.getName() + ".", ""));
     }
 
     private TypeDef(Type type, String genericString) {
+        this(type, (packageDef) -> {
+            final String genericTypeName = EXCEPT_MODIFIERS.matcher(genericString).replaceAll("");
+            return genericTypeName.replace(packageDef.getName() + ".", "");
+        });
+    }
+
+    private TypeDef(Type type, Function<PackageDef, String> a) {
         this.packageDef = PackageDef.of(type);
-        final String genericTypeName = EXCEPT_MODIFIERS.matcher(genericString).replaceAll("");
-        this.name = genericTypeName.replace(packageDef.getName() + ".", "");
         this.kind = TypeKind.what(type);
-        this.lambda = lambdaIfFunctionalInterface(type);
+        if (kind == TypeKind.VOID) {
+            this.name = "()";
+            this.fullName = "()";
+        } else {
+            final String tempName = a.apply(packageDef);
+            if (kind == TypeKind.FUNCTIONAL_INTERFACE) {
+                this.name = lambdaIfFunctionalInterface(type).orElse(tempName);
+            } else {
+                this.name = tempName;
+            }
+            final String s = packageDef.toString();
+            this.fullName = s.isEmpty() ? tempName : s + "." + tempName;
+        }
     }
 
     public static TypeDef newInstance(Type type) {
@@ -128,21 +147,15 @@ public class TypeDef {
                '}';
     }
 
+    public PackageDef getPackageDef() {
+        return packageDef;
+    }
+
     public String getFullName() {
-        if (kind == TypeKind.VOID) {
-            return "()";
-        }
-        final String s = packageDef.toString();
-        return s.isEmpty() ? name : s + "." + name;
+        return fullName;
     }
 
     public String getSimpleName() {
-        if (kind == TypeKind.VOID) {
-            return "()";
-        }
-        if (kind == TypeKind.FUNCTIONAL_INTERFACE) {
-            return lambda.orElse(name);
-        }
         return name;
     }
 
