@@ -67,7 +67,7 @@ public class TypeDef {
         return new TypeDef(klass, klass.toGenericString());
     }
 
-    private static Optional<String> replaceTypeVariableWithActual(
+    private static Optional<String> typeVariableToActual(
             Method sam,
             TypeVariable[] variables,
             Type[] actual) {
@@ -155,37 +155,55 @@ public class TypeDef {
             return chooseDeclaredSamOrInheritedSam((Class) parameterized.getRawType(),
                                                    parameterized.getActualTypeArguments());
         }
-        return chooseDeclaredSamOrInheritedSam((Class) type, new Type[0]);
+        return chooseDeclaredSamOrInheritedSam((Class) type, new Type[]{});
     }
 
-    private Optional<String> chooseDeclaredSamOrInheritedSam(final Class klass, final Type[] actualTypeArgsOfClass) {
-        final Optional<Method> declaredSAM = Stream.of(klass.getDeclaredMethods())
-                                                   .filter(m -> !Modifier.isStatic(m.getModifiers()))
-                                                   .filter(IS_ABSTRACT)
-                                                   .filter(UNDEFINED_IN_OBJECT)
-                                                   .findFirst();
+    private static Optional<String> chooseDeclaredSamOrInheritedSam(
+            final Class thisClass,
+            final Type[] actualTypeArgsOfClass) {
+        final Optional<Method> declaredSAM = findDeclaredSAM(thisClass);
         if (declaredSAM.isPresent()) {
-            return replaceTypeVariableWithActual(declaredSAM.get(),
-                                                 klass.getTypeParameters(),
-                                                 actualTypeArgsOfClass);
+            return typeVariableToActual(declaredSAM.get(),
+                                        thisClass.getTypeParameters(),
+                                        actualTypeArgsOfClass);
         }
-        final Method inheritedSAM = Stream.of(klass.getMethods())
-                                          .filter(m -> !Modifier.isStatic(m.getModifiers()))
-                                          .filter(IS_ABSTRACT)
-                                          .findFirst()
-                                          .get();
-        final Class superClass = Stream.of(klass.getInterfaces())
-                                       .filter(k -> inheritedSAM.getDeclaringClass().equals(k))
-                                       .findFirst()
-                                       .get();
-        final ParameterizedType parameterizedSuper = Stream.of(klass.getGenericInterfaces())
-                                                           .filter(k -> k.getTypeName()
-                                                                         .startsWith(superClass.getTypeName()))
-                                                           .findFirst()
-                                                           .map(ParameterizedType.class::cast)
-                                                           .get();
-        return replaceTypeVariableWithActual(inheritedSAM,
-                                             superClass.getTypeParameters(),
-                                             parameterizedSuper.getActualTypeArguments());
+        final Method inheritedSAM = findInheritedSAM(thisClass);
+        final Class superClass = findDeclaringClassOfInheritedSAM(thisClass, inheritedSAM);
+        final ParameterizedType parameterizedSuper = superClassAsParameterized(thisClass, superClass);
+        return typeVariableToActual(inheritedSAM,
+                                    superClass.getTypeParameters(),
+                                    parameterizedSuper.getActualTypeArguments());
+    }
+
+    private static Optional<Method> findDeclaredSAM(final Class thisClass) {
+        return Stream.of(thisClass.getDeclaredMethods())
+                     .filter(method -> !Modifier.isStatic(method.getModifiers()))
+                     .filter(IS_ABSTRACT)
+                     .filter(UNDEFINED_IN_OBJECT)
+                     .findFirst();
+    }
+
+    private static ParameterizedType superClassAsParameterized(final Class thisClass, final Class superClass) {
+        return Stream.of(thisClass.getGenericInterfaces())
+                     .filter(k -> k.getTypeName().startsWith(superClass.getTypeName()))
+                     .findFirst()
+                     .map(ParameterizedType.class::cast)
+                     .get();
+    }
+
+    private static Class findDeclaringClassOfInheritedSAM(final Class thisClass, final Method inheritedSAM) {
+        return Stream.of(thisClass.getInterfaces())
+                     .filter(klass -> inheritedSAM.getDeclaringClass().equals(klass))
+                     .findFirst()
+                     .get();
+    }
+
+    private static Method findInheritedSAM(final Class thisClass) {
+        return Stream.of(thisClass.getMethods())
+                     .filter(method -> !Modifier.isStatic(method.getModifiers()))
+                     .filter(IS_ABSTRACT)
+                     .findFirst()
+                     .get();
     }
 }
+
