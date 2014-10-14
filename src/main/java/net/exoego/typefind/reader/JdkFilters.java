@@ -1,13 +1,6 @@
 package net.exoego.typefind.reader;
 
 import java.lang.reflect.Modifier;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
 import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -19,9 +12,7 @@ import java.util.stream.Stream;
 public final class JdkFilters {
     private static final Pattern WHITE_PACKAGES;
 
-    private JdkFilters() {
-
-    }
+    private JdkFilters() { }
 
     /**
      * Returns a {@code Pattern} instance that test if given {@code CharSequence} matches one of existing public JDK
@@ -268,16 +259,19 @@ public final class JdkFilters {
                                               "org.xml.sax.ext",
                                               "org.xml.sax.helpers"
                                              );
-        final BinaryOperator<PackageNode> combiner = (p1, p2) -> {
+        final BinaryOperator<PackageNode> NO_COMBINER = (p1, p2) -> {
             throw new IllegalStateException();
         };
+        final String ROOT_INDICATOR = "/";
         final PackageNode root = pkgs.map(r -> {
             final String[] split = r.split("\\.");
-            final String[] strings = Arrays.copyOf(split, split.length + 1);
-            strings[split.length] = "<>";
-            return IntStream.range(0, strings.length)
-                            .mapToObj(i -> new PackageNode(strings[i], i));
-        }).reduce(new PackageNode("/", 0),
+            // The sentinel value is to indicate that the "middle" package is also one to be included in Pattern.
+            // Example is "java.awt" which has sub package "java.awt.color" and etc.
+            // On the other hand, middle packages like "java" and "org" is not to be included in Pattern.
+            return Stream.concat(IntStream.range(0, split.length)
+                                          .mapToObj(depth -> PackageNode.newInstance(split[depth], depth)),
+                                 Stream.of(PackageNode.sentinel(split.length)));
+        }).reduce(PackageNode.newInstance(ROOT_INDICATOR, 0),
                   (root_, stream) -> {
                       stream.reduce(root_,
                                     (last, current) -> {
@@ -287,81 +281,11 @@ public final class JdkFilters {
                                         last.add(current);
                                         return current;
                                     },
-                                    combiner);
+                                    NO_COMBINER);
                       return root_;
                   },
-                  combiner);
-
-        final String packagePattern = root.toPatternGroup()
-                                          .replaceFirst("^/", "")
-                                          .replaceFirst("\\?$", "");
-        WHITE_PACKAGES = Pattern.compile("^" + packagePattern + "$");
-    }
-
-    private static class PackageNode extends AbstractMap<PackageNode, PackageNode> {
-        private final String name;
-        private final Map<PackageNode, PackageNode> sub = new HashMap<>();
-        private final int depth;
-
-        private PackageNode(final String name, int depth) {
-            this.name = name;
-            this.depth = depth;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public PackageNode put(PackageNode key, PackageNode value) {
-            return sub.put(key, value);
-        }
-
-        @Override
-        public PackageNode get(Object key) {
-            return sub.get(key);
-        }
-
-        public PackageNode add(PackageNode key) {
-            return put(key, key);
-        }
-
-        @Override
-        public Set<Entry<PackageNode, PackageNode>> entrySet() {
-            return sub.entrySet();
-        }
-
-        @Override
-        public boolean containsKey(Object key) {
-            return sub.containsKey(key);
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof PackageNode)) {
-                return false;
-            }
-            final PackageNode that = (PackageNode) o;
-            return name.equals(that.name);
-        }
-
-        public String toPatternGroup() {
-            final String dot = (depth != 0) ? "\\." : "";
-            final StringJoiner joiner = new StringJoiner("|", dot + name + "(?:", ")");
-            sub.keySet().stream()
-               .sorted(Comparator.comparing(PackageNode::getName))
-               .forEach(p -> joiner.add(p.toPatternGroup()));
-            return joiner.toString()
-                         .replace("\\.<>", "")
-                         .replace("(?:)", "");
-        }
-
-        @Override
-        public int hashCode() {
-            return name.hashCode();
-        }
+                  NO_COMBINER);
+        WHITE_PACKAGES = Pattern.compile(String.format("^%s$", root.toPatternGroup()
+                                                                   .replaceFirst("^" + ROOT_INDICATOR, "")));
     }
 }
