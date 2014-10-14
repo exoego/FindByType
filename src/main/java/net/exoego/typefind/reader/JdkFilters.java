@@ -33,10 +33,25 @@ public final class JdkFilters {
      */
     public static boolean isPublicDocumentedJdkClass(Class<?> k) {
         if (Modifier.isPublic(k.getModifiers())) {
-            final String packageName = k.getPackage().getName();
-            return packageName != null && WHITE_PACKAGES.matcher(packageName).matches();
+            if (ensureRecursivelyEnclosingClassAllPublic(k)) {
+                final String packageName = k.getPackage().getName();
+                return packageName != null && WHITE_PACKAGES.matcher(packageName).matches();
+            }
         }
         return false;
+    }
+
+    private static boolean ensureRecursivelyEnclosingClassAllPublic(Class<?> subClass) {
+        while (true) {
+            final Class<?> enclosingClass = subClass.getEnclosingClass();
+            if (enclosingClass == null) {
+                return true;
+            }
+            if (!Modifier.isPublic(enclosingClass.getModifiers())) {
+                return false;
+            }
+            subClass = enclosingClass;
+        }
     }
 
     static {

@@ -1,9 +1,11 @@
 package net.exoego.typefind.reader;
 
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Spliterator;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -12,11 +14,16 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
+@RunWith(Theories.class)
 public class ClassStreamTest {
     private static String JRE_LIB;
 
@@ -45,6 +52,18 @@ public class ClassStreamTest {
                                                  .flatMap(ClassStream::from)
                                                  .filter(JdkFilters::isPublicDocumentedJdkClass);
         assertThat(jdkClasses.count(), is(greaterThan(4000L)));
+    }
+
+    @DataPoints
+    public static final String[] PUBLIC_BUT_ENCLOSING_IS_NOT_PUBLIC = {
+            "java.util.stream.Node$OfInt", "java.util.stream.Node$Builder$OfInt"
+    };
+
+    @Theory
+    public void exclude_public_inner_class_if_enclosing_class_is_non_public(String className) throws IOException, ClassNotFoundException {
+        final Class<?> aClass = Class.forName(className, false, ClassLoader.getSystemClassLoader());
+        assertThat(Modifier.isPublic(aClass.getModifiers()), is(true));
+        assertThat(JdkFilters.isPublicDocumentedJdkClass(aClass), is(false));
     }
 
     private static <T extends Comparable<T>> Matcher<T> greaterThan(final T base) {
