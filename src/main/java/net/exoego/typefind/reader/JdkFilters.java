@@ -298,13 +298,6 @@ public final class JdkFilters {
         WHITE_PACKAGES = Pattern.compile("^" + packagePattern + "$");
     }
 
-    public static void main(String[] args) {
-        System.out.println(WHITE_PACKAGES.matcher("java.util").matches());
-        System.out.println(WHITE_PACKAGES.matcher("java.utila").matches());
-        System.out.println(WHITE_PACKAGES.matcher("java.awt").matches());
-        System.out.println(WHITE_PACKAGES.matcher("java.awt.color").matches());
-    }
-
     private static class PackageNode extends AbstractMap<PackageNode, PackageNode> {
         private final String name;
         private final Map<PackageNode, PackageNode> sub = new HashMap<>();
