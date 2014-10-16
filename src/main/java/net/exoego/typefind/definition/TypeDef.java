@@ -10,22 +10,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-
-import com.google.gson.annotations.JsonAdapter;
 
 public class TypeDef {
     private static final Pattern EXCEPT_MODIFIERS = Pattern.compile(
             "\\b(?:public|protected|private|class|interface|enum|abstract|native|static|strictfp|final|synchronized) \\b");
     private static final Predicate<Method> IS_ABSTRACT;
     private static final Predicate<Method> UNDEFINED_IN_OBJECT = method -> {
+        final Class<?>[] params = method.getParameterTypes();
+        final String methodName = method.getName();
         try {
-            final Class<?>[] params = method.getParameterTypes();
-            final String methodName = method.getName();
             final Method objectMethod = Object.class.getMethod(methodName, params);
             return false;
         } catch (NoSuchMethodException e) {
@@ -44,17 +42,21 @@ public class TypeDef {
     private final TypeKind kind;
 
     private TypeDef(Type type) {
-        this(type, (packageDef) -> type.getTypeName().replace(packageDef.getName() + ".", ""));
+        this(type, LambdaExpression.USE);
     }
 
-    private TypeDef(Type type, String genericString) {
+    private TypeDef(Type type, LambdaExpression flag) {
+        this(type, (packageDef) -> type.getTypeName().replace(packageDef.getName() + ".", ""), flag);
+    }
+
+    private TypeDef(Type type, String genericString, LambdaExpression flag) {
         this(type, (packageDef) -> {
             final String genericTypeName = EXCEPT_MODIFIERS.matcher(genericString).replaceAll("");
             return genericTypeName.replace(packageDef.getName() + ".", "");
-        });
+        }, flag);
     }
 
-    private TypeDef(Type type, Function<PackageDef, String> a) {
+    private TypeDef(Type type, Function<PackageDef, String> a, LambdaExpression flag) {
         this.packageDef = PackageDef.of(type);
         this.kind = TypeKind.what(type);
         if (kind == TypeKind.VOID) {
@@ -62,7 +64,7 @@ public class TypeDef {
             this.fullName = "()";
         } else {
             final String tempName = a.apply(packageDef);
-            if (kind == TypeKind.FUNCTIONAL_INTERFACE) {
+            if (kind == TypeKind.FUNCTIONAL_INTERFACE && flag == LambdaExpression.USE) {
                 this.name = lambdaIfFunctionalInterface(type).orElse(tempName);
             } else {
                 this.name = tempName;
@@ -81,8 +83,17 @@ public class TypeDef {
         }
     }
 
+    private static TypeDef forceClassNameFormEvenIfFunctionalInterface(Type type) {
+        if (type instanceof ParameterizedType || type instanceof TypeVariable ||
+            type instanceof GenericArrayType || type instanceof Class) {
+            return new TypeDef(type, LambdaExpression.NOT_USE);
+        } else {
+            throw new IllegalArgumentException("unknown subtype of Type: " + type.getClass());
+        }
+    }
+
     public static TypeDef forceGeneric(Class<?> klass) {
-        return new TypeDef(klass, klass.toGenericString());
+        return new TypeDef(klass, klass.toGenericString(), LambdaExpression.USE);
     }
 
     private static Optional<String> typeVariableToActual(
@@ -90,12 +101,15 @@ public class TypeDef {
             TypeVariable[] variables,
             Type[] actual) {
         final Map<TypeVariable, Type> relation = typeParamRelation(variables, actual);
+        final BinaryOperator<String> neverUsed = (lambda1, lambda2) -> null;
         final String lambda = relation.entrySet().stream().reduce(toLambda(sam), (l, entry) -> {
             final String tentative = entry.getKey().getTypeName();
+            final String actualName = entry.getValue().getTypeName()
+                                           .replaceAll("\\? (super|extends) ", "")
+                                           .replace("$", "__");
             // TODO: Handle upper/lower bounds in better way...
-            final String actualName = entry.getValue().getTypeName().replaceAll("\\? (super|extends) ", "");
             return Pattern.compile("\\b" + tentative + "\\b").matcher(l).replaceAll(actualName);
-        }, (lambda1, lambda2) -> /* combiner never used !! */null);
+        }, neverUsed);
         return Optional.of(lambda);
     }
 
@@ -116,9 +130,11 @@ public class TypeDef {
     private static String toLambda(final Method method) {
         final Type[] parameterTypes = method.getGenericParameterTypes();
         final Type returnType = method.getGenericReturnType();
+        final TypeDef typeDef = TypeDef.forceClassNameFormEvenIfFunctionalInterface(returnType);
+        final String returnTypeString = typeDef.getSimpleName();
         return String.format("(%s -> %s)",
                              argumentsInSimpleNotation(parameterTypes),
-                             TypeDef.newInstance(returnType).getSimpleName());
+                             returnTypeString);
     }
 
     private static String argumentsInSimpleNotation(Type[] arguments) {
@@ -127,15 +143,65 @@ public class TypeDef {
                 return "()";
             case 1:
                 // arg
-                return TypeDef.newInstance(arguments[0]).getSimpleName();
+                return TypeDef.forceClassNameFormEvenIfFunctionalInterface(arguments[0]).getSimpleName();
             default:
                 // (arg1, arg2)
                 final StringJoiner joiner = new StringJoiner(", ", "(", ")");
                 for (Type arg : arguments) {
-                    joiner.add(TypeDef.newInstance(arg).getSimpleName());
+                    joiner.add(TypeDef.forceClassNameFormEvenIfFunctionalInterface(arg).getSimpleName());
                 }
                 return joiner.toString();
         }
+    }
+
+    private static Optional<String> chooseDeclaredSamOrInheritedSam(
+            final Class thisClass,
+            final Type[] actualTypeArgsOfClass) {
+        final Optional<Method> declaredSAM = findDeclaredSAM(thisClass);
+        if (declaredSAM.isPresent()) {
+            return typeVariableToActual(declaredSAM.get(),
+                                        thisClass.getTypeParameters(),
+                                        actualTypeArgsOfClass);
+        }
+        final Method inheritedSAM = findInheritedSAM(thisClass);
+        final Class superClass = findDeclaringClassOfInheritedSAM(thisClass, inheritedSAM);
+        final ParameterizedType parameterizedSuper = superClassAsParameterized(thisClass, superClass);
+        return typeVariableToActual(inheritedSAM,
+                                    superClass.getTypeParameters(),
+                                    parameterizedSuper.getActualTypeArguments());
+    }
+
+    private static Optional<Method> findDeclaredSAM(final Class thisClass) {
+        return Stream.of(thisClass.getDeclaredMethods())
+                     .filter(method -> !Modifier.isStatic(method.getModifiers()))
+                     .filter(IS_ABSTRACT)
+                     .filter(UNDEFINED_IN_OBJECT)
+                     .findFirst();
+    }
+
+    private static ParameterizedType superClassAsParameterized(final Class thisClass, final Class superClass) {
+        return Stream.of(thisClass.getGenericInterfaces())
+                     .filter(k -> k.getTypeName().startsWith(superClass.getTypeName()))
+                     .findFirst()
+                     .map(ParameterizedType.class::cast)
+                     .orElseThrow(() -> new IllegalStateException(String.format("thisClass:%s superclass:%s",
+                                                                                thisClass,
+                                                                                superClass)));
+    }
+
+    private static Class findDeclaringClassOfInheritedSAM(final Class thisClass, final Method inheritedSAM) {
+        return Stream.of(thisClass.getInterfaces())
+                     .filter(klass -> inheritedSAM.getDeclaringClass().equals(klass))
+                     .findFirst()
+                     .get();
+    }
+
+    private static Method findInheritedSAM(final Class thisClass) {
+        return Stream.of(thisClass.getMethods())
+                     .filter(method -> !Modifier.isStatic(method.getModifiers()))
+                     .filter(IS_ABSTRACT)
+                     .findFirst()
+                     .get();
     }
 
     @Override
@@ -170,52 +236,6 @@ public class TypeDef {
         return chooseDeclaredSamOrInheritedSam((Class) type, new Type[]{});
     }
 
-    private static Optional<String> chooseDeclaredSamOrInheritedSam(
-            final Class thisClass,
-            final Type[] actualTypeArgsOfClass) {
-        final Optional<Method> declaredSAM = findDeclaredSAM(thisClass);
-        if (declaredSAM.isPresent()) {
-            return typeVariableToActual(declaredSAM.get(),
-                                        thisClass.getTypeParameters(),
-                                        actualTypeArgsOfClass);
-        }
-        final Method inheritedSAM = findInheritedSAM(thisClass);
-        final Class superClass = findDeclaringClassOfInheritedSAM(thisClass, inheritedSAM);
-        final ParameterizedType parameterizedSuper = superClassAsParameterized(thisClass, superClass);
-        return typeVariableToActual(inheritedSAM,
-                                    superClass.getTypeParameters(),
-                                    parameterizedSuper.getActualTypeArguments());
-    }
-
-    private static Optional<Method> findDeclaredSAM(final Class thisClass) {
-        return Stream.of(thisClass.getDeclaredMethods())
-                     .filter(method -> !Modifier.isStatic(method.getModifiers()))
-                     .filter(IS_ABSTRACT)
-                     .filter(UNDEFINED_IN_OBJECT)
-                     .findFirst();
-    }
-
-    private static ParameterizedType superClassAsParameterized(final Class thisClass, final Class superClass) {
-        return Stream.of(thisClass.getGenericInterfaces())
-                     .filter(k -> k.getTypeName().startsWith(superClass.getTypeName()))
-                     .findFirst()
-                     .map(ParameterizedType.class::cast)
-                     .get();
-    }
-
-    private static Class findDeclaringClassOfInheritedSAM(final Class thisClass, final Method inheritedSAM) {
-        return Stream.of(thisClass.getInterfaces())
-                     .filter(klass -> inheritedSAM.getDeclaringClass().equals(klass))
-                     .findFirst()
-                     .get();
-    }
-
-    private static Method findInheritedSAM(final Class thisClass) {
-        return Stream.of(thisClass.getMethods())
-                     .filter(method -> !Modifier.isStatic(method.getModifiers()))
-                     .filter(IS_ABSTRACT)
-                     .findFirst()
-                     .get();
-    }
+    private static enum LambdaExpression {USE, NOT_USE}
 }
 

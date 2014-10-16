@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -86,6 +88,17 @@ public class MethodDefTest {
             final Method method = Arrays.class.getMethod("asList", Object[].class);
             assertThat(MethodDef.newInstance(method).simple(), is("T[] -> List<T>"));
             assertThat(MethodDef.newInstance(method).full(), is("java.util.Arrays.asList: T[] -> java.util.List<T>"));
+        }
+
+        @Test
+        public void methodHasFunctionalInterfaceArguments() throws NoSuchMethodException {
+            final Method method = Stream.class.getMethod("map", Function.class);
+            final MethodDef methodDef = MethodDef.newInstance(method);
+            assertThat(methodDef.simple(), is("(Stream<T>, (T -> R)) -> Stream<R>"));
+            assertThat(methodDef.full(),
+                       is("java.util.stream.Stream<T>#map: " +
+                          "(java.util.stream.Stream<T>, java.util.function.Function<? super T, ? extends R>) " +
+                          "-> java.util.stream.Stream<R>"));
         }
     }
 

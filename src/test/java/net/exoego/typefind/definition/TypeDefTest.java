@@ -7,6 +7,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Spliterator;
 import java.util.function.BinaryOperator;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -21,6 +22,7 @@ import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
+import org.w3c.dom.views.AbstractView;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -116,12 +118,38 @@ public class TypeDefTest {
 
     @RunWith(Theories.class)
     public static class TypeVariable {
+        public static Supplier<Spliterator.OfInt> get() {
+            return null;
+        }
+
         @Test
         public void typeVariable() throws NoSuchMethodException {
             final Method add = List.class.getMethod("add", Object.class);
             final TypeDef typeDef = TypeDef.newInstance(add.getGenericParameterTypes()[0]);
-            assertThat(typeDef.getFullName(),is("E"));
+            assertThat(typeDef.getFullName(), is("E"));
             assertThat(typeDef.getSimpleName(), is("E"));
+        }
+
+        @Test
+        public void return_type_of_SAM_is_show_its_class_name_form() throws NoSuchMethodException {
+            assertThat(TypeDef.newInstance(AbstractView.class).getSimpleName(), is("(() -> DocumentView)"));
+            assertThat(TypeDef.newInstance(AbstractView.class).getFullName(), is("org.w3c.dom.views.AbstractView"));
+        }
+
+        @Test
+        public void argument_of_SAM_is_show_its_class_name() throws NoSuchMethodException {
+            assertThat(TypeDef.newInstance(Odd.class).getSimpleName(),
+                       is("((TypeDefTest$TypeVariable$Even, int) -> int)"));
+        }
+
+        @java.lang.FunctionalInterface
+        public static interface Odd {
+            int test(Even predicate, int index);
+        }
+
+        @java.lang.FunctionalInterface
+        public static interface Even {
+            int test(Even predicate, int index);
         }
     }
 
@@ -182,7 +210,6 @@ public class TypeDefTest {
             assertThat(typeDef.getFullName(), is("java.util.Comparator<? super E>"));
             assertThat(typeDef.getSimpleName(), is("((E, E) -> int)"));
         }
-
     }
 
     @RunWith(Theories.class)
