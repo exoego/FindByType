@@ -12,35 +12,18 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class TypeDef {
     private static final Pattern EXCEPT_MODIFIERS = Pattern.compile(
             "\\b(?:public|protected|private|class|interface|enum|abstract|native|static|strictfp|final|synchronized) \\b");
-    private static final Predicate<Method> IS_ABSTRACT;
-    private static final Predicate<Method> UNDEFINED_IN_OBJECT = method -> {
-        final Class<?>[] params = method.getParameterTypes();
-        final String methodName = method.getName();
-        try {
-            final Method objectMethod = Object.class.getMethod(methodName, params);
-            return false;
-        } catch (NoSuchMethodException e) {
-            return true;
-        }
-    };
-
-    static {
-        final Predicate<Method> isDefault = Method::isDefault;
-        IS_ABSTRACT = isDefault.negate();
-    }
-
     private final PackageDef packageDef;
     private final String typeName;
     private final String canonicalName;
     private final String simpleForm;
     private final TypeKind kind;
+    private final boolean isDeprecated;
 
     private TypeDef(Type type) {
         this(type, LambdaExpression.USE);
@@ -74,6 +57,22 @@ public class TypeDef {
             final String s = packageDef.toString();
             this.canonicalName = s.isEmpty() ? typeName : s + "." + typeName;
         }
+        isDeprecated = isDeprecated(type);
+    }
+
+    private static boolean isDeprecated(Type type) {
+        if (type instanceof Class) {
+            return ((Class) type).getAnnotation(Deprecated.class) != null;
+        } else if (type instanceof ParameterizedType) {
+            try {
+                final Type rawType = ((ParameterizedType) type).getRawType();
+                return ((Class) rawType).getAnnotation(Deprecated.class) != null;
+            } catch (ClassCastException e) {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     public static TypeDef newInstance(Type type) {
@@ -104,7 +103,8 @@ public class TypeDef {
         final BinaryOperator<String> neverUsed = (lambda1, lambda2) -> null;
         final String lambda = relation.entrySet().stream().reduce(toLambda(sam), (l, entry) -> {
             final String tentative = entry.getKey().getTypeName();
-            final String actualName = entry.getValue().getTypeName()
+            final String actualName = entry.getValue()
+                                           .getTypeName()
                                            .replaceAll("\\? (super|extends) ", "")
                                            .replace("$", "__");
             // TODO: Handle upper/lower bounds in better way...
@@ -169,8 +169,8 @@ public class TypeDef {
     private static Optional<Method> findDeclaredSAM(final Class thisClass) {
         return Stream.of(thisClass.getDeclaredMethods())
                      .filter(method -> !Modifier.isStatic(method.getModifiers()))
-                     .filter(IS_ABSTRACT)
-                     .filter(UNDEFINED_IN_OBJECT)
+                     .filter(MethodDef::isAbstract)
+                     .filter(MethodDef::undefinedInObject)
                      .findFirst();
     }
 
@@ -194,7 +194,7 @@ public class TypeDef {
     private static Method findInheritedSAM(final Class thisClass) {
         return Stream.of(thisClass.getMethods())
                      .filter(method -> !Modifier.isStatic(method.getModifiers()))
-                     .filter(IS_ABSTRACT)
+                     .filter(MethodDef::isAbstract)
                      .findFirst()
                      .get();
     }
@@ -208,18 +208,25 @@ public class TypeDef {
     public static boolean isPublic(Class<?> self) {
         try {
             while (true) {
-                final Class<?> enclosingClass = self.getEnclosingClass();
-                if (enclosingClass == null) {
-                    return Modifier.isPublic(self.getModifiers());
-                }
-                if (!Modifier.isPublic(enclosingClass.getModifiers())) {
+                if (!Modifier.isPublic(self.getModifiers())) {
                     return false;
                 }
-                self = enclosingClass;
+                self = self.getEnclosingClass();
+                if (self == null) {
+                    return true;
+                }
             }
         } catch (NoClassDefFoundError ex) {
             return false;
         }
+    }
+
+    public boolean isDeprecated() {
+        return isDeprecated;
+    }
+
+    public TypeKind getKind() {
+        return kind;
     }
 
     public PackageDef getPackageDef() {
