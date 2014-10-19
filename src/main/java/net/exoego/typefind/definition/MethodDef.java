@@ -55,7 +55,7 @@ public class MethodDef {
             } catch (NoClassDefFoundError e) {
                 return new Method[]{};
             }
-        }).flatMap(Stream::of).map(MethodDef::newInstance);
+        }).flatMap(Stream::of).filter(MethodDef::undefinedInObject).map(MethodDef::newInstance);
     }
 
     public static MethodDef newInstance(Method method) {
@@ -76,6 +76,21 @@ public class MethodDef {
                     joiner.add(mapper.apply(arg));
                 }
                 return joiner.toString();
+        }
+    }
+
+    public static boolean isAbstract(Method method) {
+        return !method.isDefault();
+    }
+
+    public static boolean undefinedInObject(Method method) {
+        final Class<?>[] params = method.getParameterTypes();
+        final String methodName = method.getName();
+        try {
+            final Method objectMethod = Object.class.getMethod(methodName, params);
+            return false;
+        } catch (NoSuchMethodException e) {
+            return true;
         }
     }
 
