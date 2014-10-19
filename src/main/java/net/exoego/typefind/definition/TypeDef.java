@@ -37,8 +37,9 @@ public class TypeDef {
     }
 
     private final PackageDef packageDef;
-    private final String name;
-    private final String fullName;
+    private final String typeName;
+    private final String canonicalName;
+    private final String simpleForm;
     private final TypeKind kind;
 
     private TypeDef(Type type) {
@@ -60,17 +61,18 @@ public class TypeDef {
         this.packageDef = PackageDef.of(type);
         this.kind = TypeKind.what(type);
         if (kind == TypeKind.VOID) {
-            this.name = "()";
-            this.fullName = "()";
+            this.typeName = "()";
+            this.simpleForm = "()";
+            this.canonicalName = "()";
         } else {
-            final String tempName = a.apply(packageDef);
+            this.typeName = a.apply(packageDef);
             if (kind == TypeKind.FUNCTIONAL_INTERFACE && flag == LambdaExpression.USE) {
-                this.name = lambdaIfFunctionalInterface(type).orElse(tempName);
+                this.simpleForm = lambdaIfFunctionalInterface(type).orElse(typeName);
             } else {
-                this.name = tempName;
+                this.simpleForm = typeName;
             }
             final String s = packageDef.toString();
-            this.fullName = s.isEmpty() ? tempName : s + "." + tempName;
+            this.canonicalName = s.isEmpty() ? typeName : s + "." + typeName;
         }
     }
 
@@ -97,9 +99,7 @@ public class TypeDef {
     }
 
     private static Optional<String> typeVariableToActual(
-            Method sam,
-            TypeVariable[] variables,
-            Type[] actual) {
+            Method sam, TypeVariable[] variables, Type[] actual) {
         final Map<TypeVariable, Type> relation = typeParamRelation(variables, actual);
         final BinaryOperator<String> neverUsed = (lambda1, lambda2) -> null;
         final String lambda = relation.entrySet().stream().reduce(toLambda(sam), (l, entry) -> {
@@ -131,10 +131,8 @@ public class TypeDef {
         final Type[] parameterTypes = method.getGenericParameterTypes();
         final Type returnType = method.getGenericReturnType();
         final TypeDef typeDef = TypeDef.forceClassNameFormEvenIfFunctionalInterface(returnType);
-        final String returnTypeString = typeDef.getSimpleName();
-        return String.format("(%s -> %s)",
-                             argumentsInSimpleNotation(parameterTypes),
-                             returnTypeString);
+        final String returnTypeString = typeDef.getSimpleForm();
+        return String.format("(%s -> %s)", argumentsInSimpleNotation(parameterTypes), returnTypeString);
     }
 
     private static String argumentsInSimpleNotation(Type[] arguments) {
@@ -143,25 +141,22 @@ public class TypeDef {
                 return "()";
             case 1:
                 // arg
-                return TypeDef.forceClassNameFormEvenIfFunctionalInterface(arguments[0]).getSimpleName();
+                return TypeDef.forceClassNameFormEvenIfFunctionalInterface(arguments[0]).getSimpleForm();
             default:
                 // (arg1, arg2)
                 final StringJoiner joiner = new StringJoiner(", ", "(", ")");
                 for (Type arg : arguments) {
-                    joiner.add(TypeDef.forceClassNameFormEvenIfFunctionalInterface(arg).getSimpleName());
+                    joiner.add(TypeDef.forceClassNameFormEvenIfFunctionalInterface(arg).getSimpleForm());
                 }
                 return joiner.toString();
         }
     }
 
     private static Optional<String> chooseDeclaredSamOrInheritedSam(
-            final Class thisClass,
-            final Type[] actualTypeArgsOfClass) {
+            final Class thisClass, final Type[] actualTypeArgsOfClass) {
         final Optional<Method> declaredSAM = findDeclaredSAM(thisClass);
         if (declaredSAM.isPresent()) {
-            return typeVariableToActual(declaredSAM.get(),
-                                        thisClass.getTypeParameters(),
-                                        actualTypeArgsOfClass);
+            return typeVariableToActual(declaredSAM.get(), thisClass.getTypeParameters(), actualTypeArgsOfClass);
         }
         final Method inheritedSAM = findInheritedSAM(thisClass);
         final Class superClass = findDeclaringClassOfInheritedSAM(thisClass, inheritedSAM);
@@ -204,24 +199,25 @@ public class TypeDef {
                      .get();
     }
 
-    @Override
-    public String toString() {
-        return "TypeDef{" +
-               "packageDef=" + packageDef +
-               ", name='" + name + '\'' +
-               '}';
-    }
-
     public PackageDef getPackageDef() {
         return packageDef;
     }
 
-    public String getFullName() {
-        return fullName;
+    public String getTypeName() {
+        return typeName;
     }
 
-    public String getSimpleName() {
-        return name;
+    public String getCanonicalName() {
+        return canonicalName;
+    }
+
+    /**
+     * Returns lambda-expression if this type is functional interface, otherwise just type name.
+     *
+     * @return
+     */
+    public String getSimpleForm() {
+        return simpleForm;
     }
 
     private Optional<String> lambdaIfFunctionalInterface(Type type) {
@@ -234,6 +230,35 @@ public class TypeDef {
                                                    parameterized.getActualTypeArguments());
         }
         return chooseDeclaredSamOrInheritedSam((Class) type, new Type[]{});
+    }
+
+    @Override
+    public int hashCode() {
+        return canonicalName.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        final TypeDef typeDef = (TypeDef) o;
+        return canonicalName.equals(typeDef.canonicalName);
+    }
+
+    @Override
+    public String toString() {
+        return "TypeDef{" +
+               "packageDef=" + packageDef +
+               ", canonicalName='" + canonicalName + '\'' +
+               ", typeName='" + typeName + '\'' +
+               ", simpleForm='" + simpleForm + '\'' +
+               ", kind=" + kind +
+               '}';
     }
 
     private static enum LambdaExpression {USE, NOT_USE}
