@@ -41,9 +41,15 @@ public class MethodDef {
 
         this.isStatic = getModifiers().contains(MethodModifier.Other.STATIC);
         this.isDeprecated = method.getAnnotation(Deprecated.class) != null;
-        this.simpleForm = methodFormat(TypeDef::getSimpleName, () -> "");
-        this.fullForm = methodFormat(TypeDef::getFullName, () -> declaringClass.getFullName() +
-                                                                 (isStatic ? "." : "#") + getMethodName() + ": ");
+        this.simpleForm = methodFormat(TypeDef::getSimpleForm, () -> "");
+        this.fullForm = methodFormat(TypeDef::getCanonicalName, () -> declaringClass.getCanonicalName() +
+                                                                      (isStatic ? "." : "#") +
+                                                                      this.getMethodName() +
+                                                                      ": ");
+    }
+
+    public static Stream<MethodDef> allMethods(Class<?> klass) {
+        return Stream.of(klass).map(t -> t.getDeclaredMethods()).flatMap(Stream::of).map(MethodDef::newInstance);
     }
 
     public static MethodDef newInstance(Method method) {
