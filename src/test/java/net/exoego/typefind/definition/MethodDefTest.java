@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -95,10 +96,9 @@ public class MethodDefTest {
             final Method method = Stream.class.getMethod("map", Function.class);
             final MethodDef methodDef = MethodDef.newInstance(method);
             assertThat(methodDef.simple(), is("(Stream<T>, (T -> R)) -> Stream<R>"));
-            assertThat(methodDef.full(),
-                       is("java.util.stream.Stream<T>#map: " +
-                          "(java.util.stream.Stream<T>, java.util.function.Function<? super T, ? extends R>) " +
-                          "-> java.util.stream.Stream<R>"));
+            assertThat(methodDef.full(), is("java.util.stream.Stream<T>#map: " +
+                                            "(java.util.stream.Stream<T>, java.util.function.Function<? super T, ? extends R>) " +
+                                            "-> java.util.stream.Stream<R>"));
         }
     }
 
@@ -136,6 +136,20 @@ public class MethodDefTest {
             assertThat(methodDef.simple(), is("(List<? extends java.lang.Comparable<? super T>>, T) -> int"));
             assertThat(methodDef.full(),
                        is("java.util.Collections.binarySearch: (java.util.List<? extends java.lang.Comparable<? super T>>, T) -> int"));
+        }
+    }
+
+    public static class Deperecated {
+        @Test
+        public void returns_true_if_deprecated() throws NoSuchMethodException {
+            final Method method = Date.class.getMethod("getDate");
+            assertThat(MethodDef.newInstance(method).isDeprecated(), is(true));
+        }
+
+        @Test
+        public void returns_false_if_not_deprecated() throws NoSuchMethodException {
+            final Method method = Stream.class.getMethod("map", Function.class);
+            assertThat(MethodDef.newInstance(method).isDeprecated(), is(false));
         }
     }
 }

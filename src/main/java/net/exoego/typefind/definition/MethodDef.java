@@ -9,8 +9,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import com.google.gson.annotations.JsonAdapter;
-
 import static net.exoego.util.MoreCollectors.toImmutableList;
 import static net.exoego.util.MoreCollectors.toImmutableSet;
 
@@ -25,6 +23,7 @@ public class MethodDef {
     private final String methodName;
     private final String simpleForm;
     private final String fullForm;
+    private final boolean isDeprecated;
 
     private MethodDef(Method method) {
         this.methodName = method.getName();
@@ -44,6 +43,7 @@ public class MethodDef {
                                                                           ? "."
                                                                           : "#") +
                                                                  getMethodName() + ": ");
+        this.isDeprecated = method.getAnnotation(Deprecated.class) != null;
     }
 
     public static MethodDef newInstance(Method method) {
@@ -65,6 +65,10 @@ public class MethodDef {
                 }
                 return joiner.toString();
         }
+    }
+
+    public boolean isDeprecated() {
+        return isDeprecated;
     }
 
     public Set<AnnotationDef> getDeclaredAnnotations() {
