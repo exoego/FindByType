@@ -49,7 +49,13 @@ public class MethodDef {
     }
 
     public static Stream<MethodDef> allMethods(Class<?> klass) {
-        return Stream.of(klass).map(t -> t.getDeclaredMethods()).flatMap(Stream::of).map(MethodDef::newInstance);
+        return Stream.of(klass).map(t -> {
+            try {
+                return t.getDeclaredMethods();
+            } catch (NoClassDefFoundError e) {
+                return new Method[]{};
+            }
+        }).flatMap(Stream::of).map(MethodDef::newInstance);
     }
 
     public static MethodDef newInstance(Method method) {
