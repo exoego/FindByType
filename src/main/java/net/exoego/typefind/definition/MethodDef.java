@@ -134,7 +134,7 @@ public class MethodDef {
         return methodName;
     }
 
-    public String simple() {
+    public String getSimpleForm() {
         return simpleForm;
     }
 
@@ -150,14 +150,14 @@ public class MethodDef {
         return String.format("%s%s -> %s", begin.get(), argumentsString, name.apply(returnType));
     }
 
-    public String full() {
+    public String getFullForm() {
         return fullForm;
     }
 
     @Override
     public String toString() {
         return "MethodDef{" +
-               "\n    " + full() +
+               "\n    " + getFullForm() +
                "\n    annotations=" + annotations +
                "\n    exceptions=" + exceptions +
                "\n    arguments=" + arguments +
