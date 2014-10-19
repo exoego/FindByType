@@ -152,4 +152,18 @@ public class MethodDefTest {
             assertThat(MethodDef.newInstance(method).isDeprecated(), is(false));
         }
     }
+
+    public static class IsStatic {
+        @Test
+        public void returns_true_if_static_method() throws NoSuchMethodException {
+            final Method method = Collections.class.getMethod("emptyList");
+            assertThat(MethodDef.newInstance(method).isStatic(), is(true));
+        }
+
+        @Test
+        public void returns_false_if_not_deprecated() throws NoSuchMethodException {
+            final Method method = Stream.class.getMethod("map", Function.class);
+            assertThat(MethodDef.newInstance(method).isStatic(), is(false));
+        }
+    }
 }

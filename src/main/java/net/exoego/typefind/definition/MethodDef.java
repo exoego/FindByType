@@ -24,6 +24,7 @@ public class MethodDef {
     private final String simpleForm;
     private final String fullForm;
     private final boolean isDeprecated;
+    private final boolean isStatic;
 
     private MethodDef(Method method) {
         this.methodName = method.getName();
@@ -37,13 +38,12 @@ public class MethodDef {
                                .collect(toImmutableList());
         this.typeParameters = Stream.of(method.getTypeParameters()).map(TypeDef::newInstance).collect(toImmutableSet());
         this.modifiers = MethodModifier.extract(method).collect(toImmutableSet());
+
+        this.isStatic = getModifiers().contains(MethodModifier.Other.STATIC);
+        this.isDeprecated = method.getAnnotation(Deprecated.class) != null;
         this.simpleForm = methodFormat(TypeDef::getSimpleName, () -> "");
         this.fullForm = methodFormat(TypeDef::getFullName, () -> declaringClass.getFullName() +
-                                                                 (getModifiers().contains(MethodModifier.Other.STATIC)
-                                                                          ? "."
-                                                                          : "#") +
-                                                                 getMethodName() + ": ");
-        this.isDeprecated = method.getAnnotation(Deprecated.class) != null;
+                                                                 (isStatic ? "." : "#") + getMethodName() + ": ");
     }
 
     public static MethodDef newInstance(Method method) {
@@ -69,6 +69,10 @@ public class MethodDef {
 
     public boolean isDeprecated() {
         return isDeprecated;
+    }
+
+    public boolean isStatic() {
+        return isStatic;
     }
 
     public Set<AnnotationDef> getDeclaredAnnotations() {
