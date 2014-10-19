@@ -1,10 +1,11 @@
 package net.exoego.typefind.reader;
 
-import java.lang.reflect.Modifier;
 import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import net.exoego.typefind.definition.TypeDef;
 
 /**
  * Provides utility methods that returns {@code Pattern} instance to filter JDK public packages.
@@ -32,26 +33,11 @@ public final class JdkFilters {
      * packages.
      */
     public static boolean isPublicDocumentedJdkClass(Class<?> k) {
-        if (Modifier.isPublic(k.getModifiers())) {
-            if (ensureRecursivelyEnclosingClassAllPublic(k)) {
-                final String packageName = k.getPackage().getName();
-                return packageName != null && WHITE_PACKAGES.matcher(packageName).matches();
-            }
+        if (TypeDef.isPublic(k)) {
+            final String packageName = k.getPackage().getName();
+            return packageName != null && WHITE_PACKAGES.matcher(packageName).matches();
         }
         return false;
-    }
-
-    private static boolean ensureRecursivelyEnclosingClassAllPublic(Class<?> subClass) {
-        while (true) {
-            final Class<?> enclosingClass = subClass.getEnclosingClass();
-            if (enclosingClass == null) {
-                return true;
-            }
-            if (!Modifier.isPublic(enclosingClass.getModifiers())) {
-                return false;
-            }
-            subClass = enclosingClass;
-        }
     }
 
     static {
@@ -272,8 +258,7 @@ public final class JdkFilters {
                                               "org.w3c.dom.views",
                                               "org.xml.sax",
                                               "org.xml.sax.ext",
-                                              "org.xml.sax.helpers"
-                                             );
+                                              "org.xml.sax.helpers");
         final BinaryOperator<PackageNode> NO_COMBINER = (p1, p2) -> {
             throw new IllegalStateException();
         };
@@ -286,21 +271,17 @@ public final class JdkFilters {
             return Stream.concat(IntStream.range(0, split.length)
                                           .mapToObj(depth -> PackageNode.newInstance(split[depth], depth)),
                                  Stream.of(PackageNode.sentinel(split.length)));
-        }).reduce(PackageNode.newInstance(ROOT_INDICATOR, 0),
-                  (root_, stream) -> {
-                      stream.reduce(root_,
-                                    (last, current) -> {
-                                        if (last.containsKey(current)) {
-                                            return last.get(current);
-                                        }
-                                        last.add(current);
-                                        return current;
-                                    },
-                                    NO_COMBINER);
-                      return root_;
-                  },
-                  NO_COMBINER);
-        WHITE_PACKAGES = Pattern.compile(String.format("^%s$", root.toPatternGroup()
-                                                                   .replaceFirst("^" + ROOT_INDICATOR, "")));
+        }).reduce(PackageNode.newInstance(ROOT_INDICATOR, 0), (root_, stream) -> {
+            stream.reduce(root_, (last, current) -> {
+                if (last.containsKey(current)) {
+                    return last.get(current);
+                }
+                last.add(current);
+                return current;
+            }, NO_COMBINER);
+            return root_;
+        }, NO_COMBINER);
+        WHITE_PACKAGES = Pattern.compile(String.format("^%s$",
+                                                       root.toPatternGroup().replaceFirst("^" + ROOT_INDICATOR, "")));
     }
 }

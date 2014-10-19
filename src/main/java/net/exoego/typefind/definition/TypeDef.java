@@ -199,6 +199,29 @@ public class TypeDef {
                      .get();
     }
 
+    /**
+     * Test if the class itself is public and all enclosing classes are public.
+     *
+     * @param self the Class instance.
+     * @return true if given class is public and its all enclosing classes are public.
+     */
+    public static boolean isPublic(Class<?> self) {
+        try {
+            while (true) {
+                final Class<?> enclosingClass = self.getEnclosingClass();
+                if (enclosingClass == null) {
+                    return Modifier.isPublic(self.getModifiers());
+                }
+                if (!Modifier.isPublic(enclosingClass.getModifiers())) {
+                    return false;
+                }
+                self = enclosingClass;
+            }
+        } catch (NoClassDefFoundError ex) {
+            return false;
+        }
+    }
+
     public PackageDef getPackageDef() {
         return packageDef;
     }
