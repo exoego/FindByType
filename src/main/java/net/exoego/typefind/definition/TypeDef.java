@@ -132,7 +132,7 @@ public class TypeDef {
         final Type returnType = method.getGenericReturnType();
         final TypeDef typeDef = TypeDef.forceClassNameFormEvenIfFunctionalInterface(returnType);
         final String returnTypeString = typeDef.getSimpleForm();
-        return String.format("(%s -> %s)", argumentsInSimpleNotation(parameterTypes), returnTypeString);
+        return String.format("%s -> %s", argumentsInSimpleNotation(parameterTypes), returnTypeString);
     }
 
     private static String argumentsInSimpleNotation(Type[] arguments) {

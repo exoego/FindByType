@@ -139,14 +139,14 @@ public class TypeDefTest {
         public void return_type_of_SAM_is_show_its_class_name_form() throws NoSuchMethodException {
             final TypeDef typeDef = TypeDef.newInstance(AbstractView.class);
             assertThat(typeDef.getTypeName(), is("AbstractView"));
-            assertThat(typeDef.getSimpleForm(), is("(() -> DocumentView)"));
+            assertThat(typeDef.getSimpleForm(), is("() -> DocumentView"));
             assertThat(typeDef.getCanonicalName(), is("org.w3c.dom.views.AbstractView"));
         }
 
         @Test
         public void argument_of_SAM_is_show_its_class_name() throws NoSuchMethodException {
             final TypeDef typeDef = TypeDef.newInstance(Odd.class);
-            assertThat(typeDef.getSimpleForm(), is("((TypeDefTest$TypeVariable$Even, int) -> int)"));
+            assertThat(typeDef.getSimpleForm(), is("(TypeDefTest$TypeVariable$Even, int) -> int"));
         }
 
         @java.lang.FunctionalInterface
@@ -165,7 +165,7 @@ public class TypeDefTest {
         public void rawType() throws NoSuchMethodException {
             final TypeDef typeDef = TypeDef.newInstance(Function.class);
             assertThat(typeDef.getTypeName(), is("Function"));
-            assertThat(typeDef.getSimpleForm(), is("(T -> R)"));
+            assertThat(typeDef.getSimpleForm(), is("T -> R"));
             assertThat(typeDef.getCanonicalName(), is("java.util.function.Function"));
         }
 
@@ -174,7 +174,7 @@ public class TypeDefTest {
             final Method streamMap = Stream.class.getMethod("map", Function.class);
             final TypeDef typeDef = TypeDef.newInstance(streamMap.getGenericParameterTypes()[0]);
             assertThat(typeDef.getTypeName(), is("Function<? super T, ? extends R>"));
-            assertThat(typeDef.getSimpleForm(), is("(T -> R)"));
+            assertThat(typeDef.getSimpleForm(), is("T -> R"));
             assertThat(typeDef.getCanonicalName(), is("java.util.function.Function<? super T, ? extends R>"));
         }
 
@@ -183,7 +183,7 @@ public class TypeDefTest {
             final Method streamMap = Stream.class.getMethod("generate", Supplier.class);
             final TypeDef typeDef = TypeDef.newInstance(streamMap.getGenericParameterTypes()[0]);
             assertThat(typeDef.getTypeName(), is("Supplier<T>"));
-            assertThat(typeDef.getSimpleForm(), is("(() -> T)"));
+            assertThat(typeDef.getSimpleForm(), is("() -> T"));
             assertThat(typeDef.getCanonicalName(), is("java.util.function.Supplier<T>"));
         }
 
@@ -191,7 +191,7 @@ public class TypeDefTest {
         public void noArguments_primitive_return() throws NoSuchMethodException {
             final TypeDef typeDef = TypeDef.newInstance(BooleanSupplier.class);
             assertThat(typeDef.getTypeName(), is("BooleanSupplier"));
-            assertThat(typeDef.getSimpleForm(), is("(() -> boolean)"));
+            assertThat(typeDef.getSimpleForm(), is("() -> boolean"));
             assertThat(typeDef.getCanonicalName(), is("java.util.function.BooleanSupplier"));
         }
 
@@ -200,7 +200,7 @@ public class TypeDefTest {
             final Method streamReduce = Stream.class.getMethod("reduce", BinaryOperator.class);
             final TypeDef typeDef = TypeDef.newInstance(streamReduce.getGenericParameterTypes()[0]);
             assertThat(typeDef.getTypeName(), is("BinaryOperator<T>"));
-            assertThat(typeDef.getSimpleForm(), is("((T, T) -> T)"));
+            assertThat(typeDef.getSimpleForm(), is("(T, T) -> T"));
             assertThat(typeDef.getCanonicalName(), is("java.util.function.BinaryOperator<T>"));
         }
 
@@ -209,7 +209,7 @@ public class TypeDefTest {
             final Method reduce = IntStream.class.getMethod("reduce", IntBinaryOperator.class);
             final TypeDef typeDef = TypeDef.newInstance(reduce.getGenericParameterTypes()[0]);
             assertThat(typeDef.getTypeName(), is("IntBinaryOperator"));
-            assertThat(typeDef.getSimpleForm(), is("((int, int) -> int)"));
+            assertThat(typeDef.getSimpleForm(), is("(int, int) -> int"));
             assertThat(typeDef.getCanonicalName(), is("java.util.function.IntBinaryOperator"));
         }
 
@@ -220,7 +220,7 @@ public class TypeDefTest {
             final Method reduce = List.class.getMethod("sort", Comparator.class);
             final TypeDef typeDef = TypeDef.newInstance(reduce.getGenericParameterTypes()[0]);
             assertThat(typeDef.getTypeName(), is("Comparator<? super E>"));
-            assertThat(typeDef.getSimpleForm(), is("((E, E) -> int)"));
+            assertThat(typeDef.getSimpleForm(), is("(E, E) -> int"));
             assertThat(typeDef.getCanonicalName(), is("java.util.Comparator<? super E>"));
         }
     }
