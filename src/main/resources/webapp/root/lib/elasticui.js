@@ -1390,7 +1390,7 @@ var elasticui;
                     };
 
                     directive.template = '\
-            <input type="text" class="form-control" placeholder="search" eui-query="ejs.MatchQuery(field, querystring)" ng-model="querystring" eui-enabled="querystring.length" ng-model-options="{debounce: 200}"\
+            <input type="text" class="form-control" placeholder="search" eui-query="ejs.MatchQuery(field, querystring)" ng-model="querystring" eui-enabled="querystring.length>2" ng-model-options="{debounce: 200}"\
             />\
             ';
 
