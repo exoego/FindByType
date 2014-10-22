@@ -1,30 +1,44 @@
-import java.io.IOException;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.net.URL;
 
+import org.eclipse.jetty.rewrite.handler.RewriteHandler;
+import org.eclipse.jetty.rewrite.handler.RewriteRegexRule;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.ResourceHandler;
 
-public class Main extends HttpServlet {
+public class Main {
     public static void main(String[] args) throws Exception {
-        Server server = new Server(Integer.valueOf(System.getenv("PORT")));
-        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-        context.setContextPath("/");
-        server.setHandler(context);
-        context.addServlet(new ServletHolder(new Main()), "/*");
+        final Server server = new Server(Integer.valueOf(System.getenv("PORT")));
+
+        RewriteHandler rewrite = new RewriteHandler();
+        rewrite.setOriginalPathAttribute("requestedPath");
+
+        RewriteRegexRule reverse = new RewriteRegexRule();
+        reverse.setRegex("/q/([^/]*)");
+        reverse.setReplacement("/q/index.html?$1");
+        rewrite.addRule(reverse);
+
+        final ResourceHandler resource_handler = newResourceHandler();
+
+        // Adding handlers
+        final HandlerList handlers = new HandlerList();
+        handlers.setHandlers(new Handler[]{rewrite, resource_handler});
+
+        // Start server
+        server.setHandler(handlers);
         server.start();
         server.join();
     }
 
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        showHome(req, resp);
-    }
-
-    private void showHome(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.getWriter().print("Hello from Java!");
+    private static ResourceHandler newResourceHandler() {
+        final URL rootUrl = ClassLoader.getSystemClassLoader().getResource("webapp/root");
+        final String staticContentRoot = rootUrl.toExternalForm();
+        System.out.printf("resources:%s%n", staticContentRoot);
+        ResourceHandler resource_handler = new ResourceHandler();
+        resource_handler.setDirectoriesListed(true);
+        resource_handler.setResourceBase(staticContentRoot);
+        resource_handler.setWelcomeFiles(new String[]{"index.html"});
+        return resource_handler;
     }
 }

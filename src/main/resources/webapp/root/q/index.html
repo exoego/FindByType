@@ -1,115 +1,17 @@
 ﻿<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/html">
 <head>
-    <title>ElasticUI Demo</title>
-    <link rel="stylesheet" href="bootstrap/css/bootstrap.css"/>
-    <script src="lib/jquery-2.1.1.js"></script>
-    <script src="bootstrap/js/bootstrap.js"></script>
-    <script src="lib/angular.1.3.js"></script>
-    <script src="lib/elasticsearch.angular.js"></script>
-    <script src="lib/elastic.js"></script>
-    <script src="lib/elasticui.js"></script>
-    <script>
-        angular
-                .module('tutorial', ['elasticui'])
-                .constant('euiHost', 'http://192.168.1.236:9200');
-    </script>
-    <style>
-        #header {
-            padding-left: 15px !important;
-            margin-bottom: 0;
-        }
-
-        .sidebar {
-            padding-left: 30px !important;
-            float: left;
-            width: 260px;
-        }
-
-        .main {
-            margin-left: 270px;
-            border-left: 1px solid #e7e7e7;
-        }
-
-        footer {
-            clear: both;
-            padding-left: 270px;
-            background: #323232;
-            color: #f3f3f3;
-        }
-
-        .typefind-signature {
-            font-size: large;
-        }
-
-        .typefind-deprecated {
-            text-decoration: line-through;
-            color: #999;
-        }
-
-        .typefind-declaring-class-name {
-            color: #666;
-        }
-
-        .typefind-package-name {
-            color: #999;
-        }
-
-        .typefind-package {
-            font-size: 12px;
-            font-weight: 100 !important;
-            display: block;
-            margin: 0 0 .5em;
-        }
-
-        .result-item {
-            margin-bottom: 2em;
-            padding-bottom: 2em;
-            border-bottom: 1px solid #d3d3d3;
-        }
-
-        .typefind-method-name {
-            font-weight: bold;
-        }
-
-        .typefind-arguments {
-            color: #999;
-        }
-
-        .typefind-arguments .typefind-argument {
-            color: #c0c;
-        }
-
-        .typefind-return-type {
-            color: #909;
-        }
-
-        .typefind-argument-separator {
-            color: #999;
-        }
-
-        .typefind-method-arrow {
-            color: #999;
-        }
-
-        .typefind-facet:not(:first-of-type) {
-            margin-top: 20px;
-            border-top: 1px solid #ccc;
-        }
-
-        .typefind-facet h3 {
-            font-size: 13px;
-            color: #c00;
-        }
-
-        .typefind-facet label,
-        .typefind-facet a {
-            color: #333;
-            font-weight: 100;
-        }
-    </style>
-
-
+    <title>Query</title>
+    <link rel="stylesheet" href="../bootstrap/css/bootstrap.css"/>
+    <link rel="stylesheet" href="../css/theme.css"/>
+    <script src="../lib/jquery-2.1.1.js"></script>
+    <script src="../bootstrap/js/bootstrap.js"></script>
+    <script src="../lib/angular.1.3.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular-sanitize.js"></script>
+    <script src="../lib/elasticsearch.angular.js"></script>
+    <script src="../lib/elastic.js"></script>
+    <script src="../lib/elasticui.js"></script>
+    <script src="../js/q.js"></script>
 </head>
 <body ng-app="tutorial" eui-index="'typefind'"
       eui-highlight="ejs.Highlight(field).preTags('<mark>').postTags('</mark>')" eui-enabled="true">
@@ -125,33 +27,16 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="#">Brand</a>
+            <a class="navbar-brand" href="/">Brand</a>
         </div>
 
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-            <ul class="nav navbar-nav">
-                <li class="active"><a href="#">Link</a></li>
-                <li><a href="#">Link</a></li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <span class="caret"></span></a>
-                    <ul class="dropdown-menu" role="menu">
-                        <li><a href="#">Action</a></li>
-                        <li><a href="#">Another action</a></li>
-                        <li><a href="#">Something else here</a></li>
-                        <li class="divider"></li>
-                        <li><a href="#">Separated link</a></li>
-                        <li class="divider"></li>
-                        <li><a href="#">One more separated link</a></li>
-                    </ul>
-                </li>
-            </ul>
-            <form class="navbar-form navbar-left" role="search">
+            <form class="navbar-form navbar-left" role="search" id="query-string">
                 <div class="form-group">
                     <eui-searchbox field="'_all'"></eui-searchbox>
                 </div>
-                <button type="submit" class="btn btn-default">Submit</button>
+                <button type="submit" class="btn btn-danger"><span class="glyphicon glyphicon-search"></span></button>
             </form>
-
 
             <ul class="nav navbar-nav navbar-right">
                 <li><a href="#">Link</a></li>
@@ -193,7 +78,7 @@
 
     <div class="typefind-facet">
         <h3>Return type</h3>
-        <eui-checklist field="'returnType.kind'" size="999"></eui-checklist>
+        <eui-singleselect field="'returnType.kind'" size="10"></eui-singleselect>
     </div>
 </div>
 
@@ -209,16 +94,12 @@
                         <span class="label label-default">{{doc._type}}</span>
                         <span class="typefind-package-name">{{doc._source.declaringClass.packageDef.name}}</span>
                     </span>
-                        <span class="typefind-declaring-class-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}">{{doc._source.declaringClass.typeName}}</span>
-                        <span class="typefind-class-method-separator">{{doc._source.isStatic ? '.' : '#'}}</span>
-
-                        <span class="typefind-method-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}">{{doc._source.methodName}}</span>:
-
-                    <span class="typefind-arguments">
-                        (<span ng-repeat="arg in doc._source.arguments">{{$first ? '' : ', '}}<span
-                            class="typefind-argument">{{arg.simpleForm}}</span></span>)
-                        <span class="typefind-method-arrow glyphicon glyphicon-arrow-right"></span>
-                    </span>
+                        <span class="typefind-declaring-class-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}">{{doc._source.declaringClass.typeName}}</span
+                                ><span
+                            class="typefind-class-method-separator">{{doc._source.isStatic ? '.' : '#'}}</span><span
+                            class="typefind-method-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}"><a
+                            href="/q/{{doc._source.methodName}}">{{doc._source.methodName}}</a></span>:
+                        <method-arguments></method-arguments>
                         <span class="typefind-return-type">{{doc._source.returnType.typeName}}</span>
                     </h2>
 

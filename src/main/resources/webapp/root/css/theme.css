@@ -1,0 +1,97 @@
+
+#header {
+    padding-left: 15px !important;
+    margin-bottom: 0;
+}
+
+.sidebar {
+    padding-left: 30px !important;
+    float: left;
+    width: 260px;
+}
+
+.main {
+    margin-left: 270px;
+    border-left: 1px solid #e7e7e7;
+}
+
+#query-string input[type="text"] {
+    width: 30em !important;
+}
+
+footer {
+    clear: both;
+    padding-left: 270px;
+    background: #323232;
+    color: #f3f3f3;
+}
+
+.typefind-signature {
+    font-size: large;
+}
+
+.typefind-deprecated {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.typefind-declaring-class-name {
+    color: #666;
+}
+
+.typefind-package-name {
+    color: #999;
+}
+
+.typefind-package {
+    font-size: 12px;
+    font-weight: 100 !important;
+    display: block;
+    margin: 0 0 .5em;
+}
+
+.result-item {
+    margin-bottom: 2em;
+    padding-bottom: 2em;
+    border-bottom: 1px solid #d3d3d3;
+}
+
+.typefind-method-name {
+    font-weight: bold;
+}
+
+.typefind-arguments {
+    color: #999;
+}
+
+.typefind-arguments .typefind-argument {
+    color: #c0c;
+}
+
+.typefind-return-type {
+    color: #909;
+}
+
+.typefind-argument-separator {
+    color: #999;
+}
+
+.typefind-method-arrow {
+    color: #999;
+}
+
+.typefind-facet:not(:first-of-type) {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+}
+
+.typefind-facet h3 {
+    font-size: 13px;
+    color: #c00;
+}
+
+.typefind-facet label,
+.typefind-facet a {
+    color: #333;
+    font-weight: 100;
+}

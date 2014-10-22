@@ -1008,8 +1008,8 @@ var elasticui;
 
                     directive.template = '\
             <ul class="pager">\
-                <li ng-class="{disabled:indexVM.page <= 1}"><a href="" ng-click="indexVM.page=indexVM.page - 1">Previous</a></li>\
-                <li ng-class="{disabled:indexVM.pageCount <= indexVM.page}"><a href="" ng-click="indexVM.page=indexVM.page + 1">Next</a></li>\
+                <li ng-class="{disabled:indexVM.page <= 1}"><a href="#" ng-click="indexVM.page=indexVM.page - 1">Previous</a></li>\
+                <li ng-class="{disabled:indexVM.pageCount <= indexVM.page}"><a href="#" ng-click="indexVM.page=indexVM.page + 1">Next</a></li>\
             </ul>';
 
                     return directive;
@@ -1045,8 +1045,8 @@ var elasticui;
             <ul class="nav nav-list" eui-aggregation="ejs.TermsAggregation(agg_name).field(field).size(size)">\
                 <li ng-repeat="bucket in aggResult.buckets">\
                     <label eui-filter="ejs.TermsFilter(field, bucket.key)">\
-                        <span ng-if="!filter.enabled"><a href="" ng-click="filter.enabled=true">{{bucket.key}} <span class="muted">({{bucket.doc_count}})</span></a></span>\
-                        <span ng-if="filter.enabled">{{bucket.key}} <a href="" ng-click="filter.enabled=false" class="facet-remove">x</a></span>\
+                        <span ng-if="!filter.enabled"><a href="#" ng-click="filter.enabled=true">{{bucket.key}} <span class="muted">({{bucket.doc_count}})</span></a></span>\
+                        <span ng-if="filter.enabled">{{bucket.key}} <a href="#" ng-click="filter.enabled=false" class="facet-remove">x</a></span>\
                     </label>\
                 </li>\
             </ul>';
