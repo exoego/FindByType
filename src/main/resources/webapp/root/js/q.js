@@ -1,6 +1,7 @@
 angular.module('symbolFilters', []).filter('arrow', function () {
     return function (input) {
-        return input.replace("->", '<span class="typefind-method-arrow glyphicon glyphicon-arrow-right"></span>');
+        // workaround to ng-sanitize ignore type parameters such as Stream<T>
+        return input.replace(">", "&gt;").replace("<", "&lt;").replace("-&gt;", '<span class="typefind-method-arrow glyphicon glyphicon-arrow-right"></span>');
     };
 });
 
@@ -20,7 +21,6 @@ var app = angular
             });
         $locationProvider.html5Mode(true);
     }).controller("SearchController", function ($scope, $location) {
-
         $scope.$watch(function () {
             return $location.path();
         }, function (newVal, oldVal) {
