@@ -6,7 +6,7 @@ angular.module('symbolFilters', []).filter('arrow', function () {
 
 var app = angular
     .module('tutorial', ['elasticui', 'symbolFilters', 'ngSanitize', 'ngRoute'])
-    .constant('euiHost', 'http://192.168.1.236:9200')
+    .constant('euiHost', 'http://localhost:9200')
     .config(function ($routeProvider, $locationProvider) {
         $routeProvider
             .when("/", {
