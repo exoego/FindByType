@@ -1,0 +1,59 @@
+<div class="col-xs-3 col-lg-3 sidebar">
+    <div class="typefind-facet">
+        <h3>Libraries indexed</h3>
+        <eui-singleselect field="'_type'" size="999"></eui-singleselect>
+    </div>
+
+    <div class="typefind-facet">
+        <h3>Method resolution</h3>
+        <ul class="nav nav-list" eui-aggregation="ejs.TermsAggregation('isStatic').field('isStatic').size(5)">
+            <li ng-repeat="bucket in aggResult.buckets">
+                <label eui-filter="ejs.TermsFilter(field, bucket.key)">
+                            <span ng-if="!filter.enabled"><a href="" ng-click="filter.enabled=true">{{bucket.key=='T'
+                                ?'static' : 'polymorphic'}} <span class="muted">({{bucket.doc_count}})</span></a></span>
+                            <span ng-if="filter.enabled">{{bucket.key}} <a href="" ng-click="filter.enabled=false"
+                                                                           class="facet-remove">x</a></span>
+                </label>
+            </li>
+        </ul>
+    </div>
+
+    <div class="typefind-facet">
+        <h3>Return type</h3>
+        <eui-singleselect field="'returnType.kind'" size="10"></eui-singleselect>
+    </div>
+</div>
+
+<div class=" main">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-xs-12 col-lg-12">
+                <h1>Results</h1>
+
+                <div class="result-item" ng-repeat="doc in indexVM.results.hits.hits">
+                    <h2 class="typefind-signature">
+                    <span class="typefind-package">
+                        <span class="label label-default">{{doc._type}}</span>
+                        <span class="typefind-package-name">{{doc._source.declaringClass.packageDef.name}}</span>
+                    </span>
+                        <span class="typefind-declaring-class-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}">{{doc._source.declaringClass.typeName}}</span
+                                ><span
+                            class="typefind-class-method-separator"><wbr>{{doc._source.isStatic ? '.' : '#'}}</span><span
+                            class="typefind-method-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}"><a
+                            ng-href="/q/{{doc._source.methodName}}">{{doc._source.methodName}}</a></span>:
+                        <method-arguments></method-arguments>
+                        <span class="typefind-return-type">{{doc._source.returnType.typeName}}</span>
+                    </h2>
+
+                    <p>
+                    <span ng-repeat="ex in doc._source.exceptions">
+                        <span class="label label-danger"><span
+                                class="glyphicon glyphicon-fire"></span> {{ex.typeName}}</span>&thinsp;
+                    </span>
+                    </p>
+                </div>
+                <eui-simple-paging></eui-simple-paging>
+            </div>
+        </div>
+    </div>
+</div>
