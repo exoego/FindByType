@@ -96,19 +96,17 @@
                     </span>
                         <span class="typefind-declaring-class-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}">{{doc._source.declaringClass.typeName}}</span
                                 ><span
-                            class="typefind-class-method-separator">{{doc._source.isStatic ? '.' : '#'}}</span><span
+                            class="typefind-class-method-separator"><wbr>{{doc._source.isStatic ? '.' : '#'}}</span><span
                             class="typefind-method-name {{doc._source.isDeprecated ?'typefind-deprecated':''}}"><a
                             href="/q/{{doc._source.methodName}}">{{doc._source.methodName}}</a></span>:
                         <method-arguments></method-arguments>
                         <span class="typefind-return-type">{{doc._source.returnType.typeName}}</span>
                     </h2>
 
-                    <p>
-                    <span ng-repeat="ex in doc._source.exceptions">
+                    <p><span ng-repeat="ex in doc._source.exceptions">
                         <span class="label label-danger"><span
                                 class="glyphicon glyphicon-fire"></span> {{ex.typeName}}</span>&thinsp;
-                    </span>
-                    </p>
+                    </span></p>
                 </div>
                 <eui-simple-paging></eui-simple-paging>
             </div>
