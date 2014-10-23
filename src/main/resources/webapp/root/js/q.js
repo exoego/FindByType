@@ -20,21 +20,13 @@ var app = angular
                 templateUrl: "/partial/otherwise.html"
             });
         $locationProvider.html5Mode(true);
-    }).controller("SearchController", function ($scope, $location) {
-        $scope.$watch(function () {
-            return $location.path();
-        }, function (newVal, oldVal) {
-            var q = (newVal.match("/([^/]*$)") || ["", ""])[1];
+    }).controller("SearchController", function ($scope, $location, $rootScope, $log) {
+        $rootScope.$on("$locationChangeStart", function (event, next, current) {
+            var q = ($location.path().match("/([^/]*$)") || ["", ""])[1];
             $scope.querystring = q;
         });
     });
 
-jQuery(document).ready(function () {
-    var q = (location.href.match("/([^/]*$)") || ["", ""])[1];
-    if (q.length != 0) {
-        jQuery("#query-string input").val(decodeURIComponent(q)).trigger("input");
-    }
-});
 app.directive('methodArguments', ['$compile', function ($compile) {
     return {
         restrict: 'E',
