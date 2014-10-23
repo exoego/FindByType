@@ -13,6 +13,9 @@ var app = angular
             .when("/", {
                 templateUrl: "/partial/welcome.html"
             })
+            .when("/q/", {
+                templateUrl: "/partial/result.html"
+            })
             .when("/q/:query", {
                 templateUrl: "/partial/result.html"
             })
