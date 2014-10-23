@@ -5,12 +5,29 @@ angular.module('symbolFilters', []).filter('arrow', function () {
 });
 
 var app = angular
-    .module('tutorial', ['elasticui', 'symbolFilters', 'ngSanitize'])
+    .module('tutorial', ['elasticui', 'symbolFilters', 'ngSanitize', 'ngRoute'])
     .constant('euiHost', 'http://192.168.1.236:9200')
-    .config(['$locationProvider', function ($locationProvider) {
+    .config(function ($routeProvider, $locationProvider) {
+        $routeProvider
+            .when("/", {
+                templateUrl: "/partial/welcome.html"
+            })
+            .when("/q/:query", {
+                templateUrl: "/partial/result.html"
+            })
+            .otherwise({
+                templateUrl: "/partial/otherwise.html"
+            });
         $locationProvider.html5Mode(true);
-    }]);
+    }).controller("SearchController", function ($scope, $location) {
 
+        $scope.$watch(function () {
+            return $location.path();
+        }, function (newVal, oldVal) {
+            var q = (newVal.match("/([^/]*$)") || ["", ""])[1];
+            $scope.querystring = q;
+        });
+    });
 
 jQuery(document).ready(function () {
     var q = (location.href.match("/([^/]*$)") || ["", ""])[1];

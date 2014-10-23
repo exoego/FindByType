@@ -2,19 +2,19 @@
 <html xmlns="http://www.w3.org/1999/html">
 <head>
     <title>HOME</title>
-    <link rel="stylesheet" href="bootstrap/css/bootstrap.css"/>
-    <link rel="stylesheet" href="css/theme.css"/>
-    <script src="lib/jquery-2.1.1.js"></script>
-    <script src="bootstrap/js/bootstrap.js"></script>
-    <script src="lib/angular.1.3.js"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular-sanitize.js"></script>
-    <script src="lib/elasticsearch.angular.js"></script>
-    <script src="lib/elastic.js"></script>
-    <script src="lib/elasticui.js"></script>
-    <script src="js/q.js"></script>
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.css"/>
+    <link rel="stylesheet" href="/css/theme.css"/>
+    <script src="/lib/jquery-2.1.1.js"></script>
+    <script src="/bootstrap/js/bootstrap.js"></script>
+    <script src="//code.angularjs.org/1.3.0-beta.19/angular.js"></script>
+    <script src="//code.angularjs.org/1.3.0-beta.19/angular-sanitize.js"></script>
+    <script src="//code.angularjs.org/1.3.0-beta.19/angular-route.js"></script>
+    <script src="/lib/elasticsearch.angular.js"></script>
+    <script src="/lib/elastic.js"></script>
+    <script src="/lib/elasticui.js"></script>
+    <script src="/js/q.js"></script>
 </head>
-<body ng-app="tutorial" eui-index="'typefind'"
-      eui-highlight="ejs.Highlight(field).preTags('<mark>').postTags('</mark>')" eui-enabled="true">
+<body ng-app="tutorial" eui-index="'typefind'" eui-enabled="true">
 <!-- ACTION: change to index name -->
 <nav class="navbar navbar-default" role="navigation" id="header">
     <div class="container-fluid">
@@ -32,8 +32,10 @@
 
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
             <form class="navbar-form navbar-left" role="search" id="query-string">
-                <div class="form-group">
-                    <eui-searchbox field="'_all'"></eui-searchbox>
+                <div class="form-group" ng-controller="SearchController">
+                    <input type="text" class="form-control" placeholder="search"
+                           eui-query="ejs.MatchQuery('_all', querystring)" ng-model="querystring"
+                           eui-enabled="querystring.length>2" ng-model-options="{debounce: 200}"/>
                 </div>
                 <button type="submit" class="btn btn-danger"><span class="glyphicon glyphicon-search"></span></button>
             </form>
@@ -55,23 +57,7 @@
     </div>
 </nav>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-xs-12 col-lg-12">
-            <div class="page-header">
-                <h1>Example Queries</h1>
-            </div>
-            <p><a href="/q/Stream<A> -> Stream<B>"><kbd>Stream&lt;A&gt; -&gt; Stream&lt;B&gt;</kbd></a> blah
-                blah
-                blah </p>
-
-            <p><a href="/q/(int, int) -> int"><kbd>(int, int) -&gt; int</kbd></a> blah blah blah</p>
-
-            <p><a href="/q/concat"><kbd>concat</kbd></a> blah blah blah</p>
-            </ul>
-        </div>
-    </div>
-</div>
+<div ng-view></div>
 
 
 <footer>

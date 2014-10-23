@@ -16,7 +16,7 @@ public class Main {
 
         RewriteRegexRule reverse = new RewriteRegexRule();
         reverse.setRegex("/q/([^/]*)");
-        reverse.setReplacement("/q/index.html?$1");
+        reverse.setReplacement("/index.html?q=$1");
         rewrite.addRule(reverse);
 
         final ResourceHandler resource_handler = newResourceHandler();
