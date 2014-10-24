@@ -1152,8 +1152,9 @@ var elasticui;
 (function (elasticui) {
     (function (controllers) {
         var QueryController = (function () {
-            function QueryController($scope) {
+            function QueryController($scope, $location) {
                 this.scope = $scope;
+                this.location = $location;
             }
 
             QueryController.prototype.init = function () {
@@ -1181,8 +1182,17 @@ var elasticui;
                 } else {
                     this.scope.indexVM.query = this.scope.query.query;
                 }
+                // FIXME: bad practice : ugly mod
+                var qs = this.scope.query.querystring;
+                if (qs === null || qs === undefined) {
+                    if (this.location.path().indexOf("/q/") == 0) {
+                        this.location.path("/q/");
+                    }
+                } else {
+                    this.location.path("/q/" + qs);
+                }
             };
-            QueryController.$inject = ['$scope'];
+            QueryController.$inject = ['$scope', "$location"];
             return QueryController;
         })();
         controllers.QueryController = QueryController;
@@ -1270,6 +1280,8 @@ var elasticui;
                 directive.controller = elasticui.controllers.QueryController;
                 directive.link = function (scope, element, attrs, queryCtrl) {
                     scope.$watch(element.attr('eui-query') + " | euiCached", function (val) {
+                        // FIXME: workaround to hold raw inputs
+                        scope.query.querystring = scope.$eval(element.attr("ng-model"))
                         return scope.query.query = val;
                     });
 
@@ -1284,9 +1296,10 @@ var elasticui;
 
                     scope.query = {
                         query: scope.$eval(element.attr('eui-query') + " | euiCached"),
-                        enabled: enabled
+                        enabled: enabled,
+                        // FIXME: workaround to hold raw input
+                        querystring: scope.$eval(element.attr("ng-model"))
                     };
-
                     queryCtrl.init();
                 };
                 return directive;
@@ -1298,7 +1311,8 @@ var elasticui;
         directives.directives.directive('euiQuery', QueryDirective);
     })(elasticui.directives || (elasticui.directives = {}));
     var directives = elasticui.directives;
-})(elasticui || (elasticui = {}));
+})
+(elasticui || (elasticui = {}));
 var elasticui;
 (function (elasticui) {
     (function (util) {

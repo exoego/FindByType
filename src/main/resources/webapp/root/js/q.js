@@ -28,6 +28,11 @@ var app = angular
             var q = ($location.path().match("/([^/]*$)") || ["", ""])[1];
             $scope.querystring = q;
         });
+
+        // TODO: change location if querystring changed
+//        $scope.$watch("querystring", function (value) {
+//            console.log("input:value", value);
+//        });
     });
 
 app.directive('methodArguments', ['$compile', function ($compile) {
